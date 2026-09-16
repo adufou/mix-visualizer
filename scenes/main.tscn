@@ -20,7 +20,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="DeckContainer" type="VBoxContainer" parent="."]
+[node name="TopDeckSlot" type="VBoxContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
@@ -28,6 +28,18 @@ anchor_right = 1.0
 offset_left = 20.0
 offset_top = 20.0
 offset_right = -20.0
+
+[node name="BottomDeckSlot" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_vertical = 0
 
 [node name="MasterMeter" parent="." instance=ExtResource("2")]
 layout_mode = 1
