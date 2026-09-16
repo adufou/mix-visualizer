@@ -4,9 +4,9 @@ extends Control
 @export var deck_id := "[Channel1]"
 @export var window_seconds := 5.0
 
-const COLOR_LOW := Color(0.9, 0.45, 0.15, 0.85)   # warm orange
-const COLOR_MID := Color(0.85, 0.15, 0.15, 0.75)  # red
-const COLOR_HIGH := Color(0.95, 0.85, 0.25, 0.65) # yellow-ish
+const ALPHA_LOW := 0.85
+const ALPHA_MID := 0.75
+const ALPHA_HIGH := 0.65
 const PLAYHEAD_COLOR := Color(1, 1, 1, 0.9)
 
 ## Mixxx's VisualPlayPosition is smoothed/interpolated for display and can
@@ -14,9 +14,24 @@ const PLAYHEAD_COLOR := Color(1, 1, 1, 0.9)
 ## literal -1.0 sentinel means "no track" — anything else gets clamped.
 const NO_TRACK_POS_THRESHOLD := -0.5
 
+## Band accent colors, sourced from the current background's palette (low =
+## dark variant/muted, mid = vibrant/muted, high = light variant/muted).
+var _color_low := Color(0.9, 0.45, 0.15, ALPHA_LOW)
+var _color_mid := Color(0.85, 0.15, 0.15, ALPHA_MID)
+var _color_high := Color(0.95, 0.85, 0.25, ALPHA_HIGH)
+
 
 func _ready() -> void:
 	set_process(true)
+	BackgroundManager.bands_changed.connect(_on_bands_changed)
+	if not BackgroundManager.current_bands.is_empty():
+		_on_bands_changed(BackgroundManager.current_bands)
+
+
+func _on_bands_changed(bands: Dictionary) -> void:
+	_color_low = Color(bands["low"], ALPHA_LOW)
+	_color_mid = Color(bands["mid"], ALPHA_MID)
+	_color_high = Color(bands["high"], ALPHA_HIGH)
 
 
 func _process(_delta: float) -> void:
@@ -71,9 +86,9 @@ func _draw() -> void:
 		var x := center_x + (frame_i - center_frame) * px_per_frame
 		var bar_width: float = max(1.0, px_per_frame)
 
-		_draw_band_bar(x, bar_width, low_amp, half_height, COLOR_LOW)
-		_draw_band_bar(x, bar_width, mid_amp, half_height, COLOR_MID)
-		_draw_band_bar(x, bar_width, high_amp, half_height, COLOR_HIGH)
+		_draw_band_bar(x, bar_width, low_amp, half_height, _color_low)
+		_draw_band_bar(x, bar_width, mid_amp, half_height, _color_mid)
+		_draw_band_bar(x, bar_width, high_amp, half_height, _color_high)
 
 	draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), PLAYHEAD_COLOR, 2.0)
 
