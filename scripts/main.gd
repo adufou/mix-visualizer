@@ -14,7 +14,8 @@ const ACTIVE_DECKS := ["[Channel1]", "[Channel2]"]
 
 
 func _ready() -> void:
-	set_background_image(DEFAULT_BACKGROUND_PATH)
+	BackgroundManager.background_changed.connect(_on_background_changed)
+	BackgroundManager.set_background(DEFAULT_BACKGROUND_PATH)
 	var slots := [top_deck_slot, bottom_deck_slot]
 	for i in ACTIVE_DECKS.size():
 		var panel := DeckPanelScene.instantiate()
@@ -25,11 +26,5 @@ func _ready() -> void:
 		slots[i].add_child(panel)
 
 
-## Loads an image from disk (res:// or an absolute user path) and shows it full-screen behind the UI.
-func set_background_image(path: String) -> void:
-	var image := Image.new()
-	var err := image.load(path)
-	if err != OK:
-		push_error("Could not load background image '%s': %s" % [path, err])
-		return
-	background.texture = ImageTexture.create_from_image(image)
+func _on_background_changed(_image: Image, texture: ImageTexture) -> void:
+	background.texture = texture
