@@ -1,0 +1,49 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/deck_panel.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/waveform_display.gd" id="2"]
+
+[node name="DeckPanel" type="Control"]
+script = ExtResource("1")
+custom_minimum_size = Vector2(640, 300)
+layout_mode = 3
+anchors_preset = 0
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="CoverRect" type="TextureRect" parent="VBox/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+stretch_mode = 5
+
+[node name="InfoVBox" type="VBoxContainer" parent="VBox/Header"]
+layout_mode = 2
+
+[node name="ArtistLabel" type="Label" parent="VBox/Header/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Artist"
+
+[node name="TitleLabel" type="Label" parent="VBox/Header/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Title"
+
+[node name="AlbumLabel" type="Label" parent="VBox/Header/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Album"
+
+[node name="WaveformDisplay" type="Control" parent="VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(600, 150)
+layout_mode = 2
+script = ExtResource("2")

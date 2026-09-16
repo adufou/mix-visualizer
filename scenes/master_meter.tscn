@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/master_meter.gd" id="1"]
+
+[node name="MasterMeter" type="Control"]
+script = ExtResource("1")
+custom_minimum_size = Vector2(120, 120)
+layout_mode = 3
+anchors_preset = 0
+
+[node name="Bars" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="LowContainer" type="Control" parent="Bars"]
+custom_minimum_size = Vector2(30, 100)
+layout_mode = 2
+
+[node name="LowBar" type="ColorRect" parent="Bars/LowContainer"]
+unique_name_in_owner = true
+color = Color(0.9, 0.45, 0.15, 1)
+position = Vector2(0, 100)
+size = Vector2(30, 0)
+
+[node name="MidContainer" type="Control" parent="Bars"]
+custom_minimum_size = Vector2(30, 100)
+layout_mode = 2
+
+[node name="MidBar" type="ColorRect" parent="Bars/MidContainer"]
+unique_name_in_owner = true
+color = Color(0.85, 0.15, 0.15, 1)
+position = Vector2(0, 100)
+size = Vector2(30, 0)
+
+[node name="HighContainer" type="Control" parent="Bars"]
+custom_minimum_size = Vector2(30, 100)
+layout_mode = 2
+
+[node name="HighBar" type="ColorRect" parent="Bars/HighContainer"]
+unique_name_in_owner = true
+color = Color(0.95, 0.85, 0.25, 1)
+position = Vector2(0, 100)
+size = Vector2(30, 0)
