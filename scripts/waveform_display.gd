@@ -9,6 +9,11 @@ const COLOR_MID := Color(0.85, 0.15, 0.15, 0.75)  # red
 const COLOR_HIGH := Color(0.95, 0.85, 0.25, 0.65) # yellow-ish
 const PLAYHEAD_COLOR := Color(1, 1, 1, 0.9)
 
+## Mixxx's VisualPlayPosition is smoothed/interpolated for display and can
+## overshoot slightly below 0 (or above 1) right at a track's edges. Only the
+## literal -1.0 sentinel means "no track" — anything else gets clamped.
+const NO_TRACK_POS_THRESHOLD := -0.5
+
 
 func _ready() -> void:
 	set_process(true)
@@ -30,9 +35,10 @@ func _draw() -> void:
 
 	var levels: Dictionary = MixxxClient.latest_levels.get(deck_id, {})
 	var pos: float = levels.get("pos", -1.0)
-	if pos < 0.0:
+	if pos <= NO_TRACK_POS_THRESHOLD:
 		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), PLAYHEAD_COLOR, 2.0)
 		return
+	pos = clamp(pos, 0.0, 1.0)
 
 	var frame_count: int = deck["waveform_frame_count"]
 	var sample_rate: float = deck["waveform_sample_rate"]
