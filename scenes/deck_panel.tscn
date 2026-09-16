@@ -20,9 +20,13 @@ layout_mode = 2
 
 [node name="CoverRect" type="TextureRect" parent="VBox/Header"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+expand_mode = 1
 stretch_mode = 5
+clip_contents = true
 
 [node name="InfoVBox" type="VBoxContainer" parent="VBox/Header"]
 layout_mode = 2
