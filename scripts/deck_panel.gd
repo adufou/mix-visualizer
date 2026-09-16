@@ -20,11 +20,17 @@ func _ready() -> void:
 	if reversed:
 		header.get_parent().move_child(header, header.get_index() + 1)
 
+	set_process(true)
 	MixxxClient.track_loaded.connect(_on_track_loaded)
 	MixxxClient.cover_art_received.connect(_on_cover_art_received)
 
 	if MixxxClient.decks.has(deck_id):
 		_refresh_track_info()
+
+
+func _process(_delta: float) -> void:
+	var levels: Dictionary = MixxxClient.latest_levels.get(deck_id, {})
+	modulate.a = clamp(levels.get("volume", 1.0), 0.0, 1.0)
 
 
 func _on_track_loaded(loaded_deck_id: String) -> void:
