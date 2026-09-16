@@ -110,17 +110,25 @@ func _handle_track_loaded(msg: Dictionary) -> void:
 	if msg.has("waveform_frame_count") and msg.has("waveform_sample_rate") and msg.has("waveform_low_mid_high_base64"):
 		var frame_count: int = int(msg["waveform_frame_count"])
 		var sample_rate: float = float(msg["waveform_sample_rate"])
-		var raw_bytes: PackedByteArray = Marshalls.base64_to_raw(msg["waveform_low_mid_high_base64"])
+		var waveform_data = msg["waveform_low_mid_high_base64"]
 
-		if raw_bytes.size() != frame_count * 3:
-			push_warning("mixxx_client: waveform byte count mismatch for %s: expected %d, got %d" % [deck_id, frame_count * 3, raw_bytes.size()])
+		if waveform_data == null or frame_count == 0:
+			deck["waveform_frame_count"] = 0
+			deck["waveform_sample_rate"] = sample_rate
+			deck["waveform_bytes"] = PackedByteArray()
+			print("mixxx_client: %s waveform not analyzed yet, cleared" % deck_id)
+		else:
+			var raw_bytes: PackedByteArray = Marshalls.base64_to_raw(waveform_data)
 
-		deck["waveform_frame_count"] = frame_count
-		deck["waveform_sample_rate"] = sample_rate
-		deck["waveform_bytes"] = raw_bytes
+			if raw_bytes.size() != frame_count * 3:
+				push_warning("mixxx_client: waveform byte count mismatch for %s: expected %d, got %d" % [deck_id, frame_count * 3, raw_bytes.size()])
 
-		var duration_sec := frame_count / sample_rate if sample_rate > 0.0 else 0.0
-		print("mixxx_client: %s waveform ready — %d frames @ %.3f frames/sec = %.2fs track duration (cross-check against Mixxx)" % [deck_id, frame_count, sample_rate, duration_sec])
+			deck["waveform_frame_count"] = frame_count
+			deck["waveform_sample_rate"] = sample_rate
+			deck["waveform_bytes"] = raw_bytes
+
+			var duration_sec := frame_count / sample_rate if sample_rate > 0.0 else 0.0
+			print("mixxx_client: %s waveform ready — %d frames @ %.3f frames/sec = %.2fs track duration (cross-check against Mixxx)" % [deck_id, frame_count, sample_rate, duration_sec])
 
 	decks[deck_id] = deck
 	track_loaded.emit(deck_id)
