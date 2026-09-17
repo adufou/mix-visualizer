@@ -8,6 +8,13 @@ uniform float low_intensity : hint_range(0.0, 1.0) = 0.0;
 uniform float mid_intensity : hint_range(0.0, 1.0) = 0.0;
 uniform float high_intensity : hint_range(0.0, 1.0) = 0.0;
 
+// Tempo sync: beat_phase is Mixxx's own drift-free 0..1 phase into the current
+// beat (wraps on each beat hit); beat_pulse is a decaying kick set to 1.0 by
+// the client on that same wraparound. bpm 0.0 means no track loaded/analyzed.
+uniform float beat_phase : hint_range(0.0, 1.0) = 0.0;
+uniform float beat_pulse : hint_range(0.0, 1.0) = 0.0;
+uniform float bpm = 0.0;
+
 uniform float distort_speed = 1.5;
 uniform float distort_frequency = 12.0;
 uniform float glow_threshold : hint_range(0.0, 1.0) = 0.55;
@@ -25,13 +32,24 @@ float rand(vec2 co) {
 
 void fragment() {
 	// Low band: heat rises, so distortion is strongest at the bottom, fading
-	// out near the top.
+	// out near the top. Wobble speed tracks BPM (120 BPM = baseline speed) so
+	// faster tracks flicker faster; falls back to baseline speed if no BPM yet.
+	float tempo_scale = bpm > 0.0 ? bpm / 120.0 : 1.0;
+	float t = TIME * distort_speed * tempo_scale;
 	float rise = 1.0 - UV.y;
-	float wobble_x = sin(UV.y * distort_frequency + TIME * distort_speed) * 0.012
-			+ sin(UV.y * distort_frequency * 2.3 - TIME * distort_speed * 1.7) * 0.006;
-	float wobble_y = sin(UV.x * distort_frequency * 0.8 - TIME * distort_speed * 1.3) * 0.008
-			+ sin(UV.x * distort_frequency * 1.9 + TIME * distort_speed * 0.6) * 0.004;
-	vec2 uv = UV + vec2(wobble_x, wobble_y) * rise * low_intensity;
+	float wobble_x = sin(UV.y * distort_frequency + t) * 0.012
+			+ sin(UV.y * distort_frequency * 2.3 - t * 1.7) * 0.006;
+	float wobble_y = sin(UV.x * distort_frequency * 0.8 - t * 1.3) * 0.008
+			+ sin(UV.x * distort_frequency * 1.9 + t * 0.6) * 0.004;
+
+	// Beat envelope: heat surges right after the beat hits (beat_phase near 0)
+	// and eases off approaching the next one, plus a sharp decaying kick on
+	// the beat itself — both driven by Mixxx's own phase, so no drift on
+	// scratch/loop/tempo change.
+	float beat_env = pow(1.0 - beat_phase, 2.0);
+	float heat_amp = low_intensity * (0.6 + 0.4 * beat_env) + beat_pulse * 0.3 * low_intensity;
+
+	vec2 uv = UV + vec2(wobble_x, wobble_y) * rise * heat_amp;
 	vec4 base = texture(TEXTURE, uv);
 
 	// Mid band: cheap ring-sample bloom on top of the (already distorted) uv.

@@ -15,7 +15,11 @@ signal levels_updated()
 ##              waveform_bytes: PackedByteArray, cover_texture: ImageTexture }
 var decks: Dictionary = {}
 
-## deck_id -> { pos, eq_low, eq_mid, eq_high, kill_low, kill_mid, kill_high }
+## deck_id -> { pos, volume, eq_low, eq_mid, eq_high, kill_low, kill_mid, kill_high,
+##              bpm, beat_distance }
+## bpm: actual playing tempo (analyzed BPM x playback rate), 0.0 if unloaded/unanalyzed.
+## beat_distance: 0..1 fraction into the current beat, drift-free (Mixxx sync engine),
+##                wraps 1 -> 0 on each beat hit.
 var latest_levels: Dictionary = {}
 
 ## { low, mid, high }
