@@ -1,19 +1,21 @@
 extends Node
-## Autoload singleton: owns the current background image.
-## Keeps the raw Image (not just its texture) so future features
-## (color extraction, palettes, etc.) can read pixel data without reloading.
-
-const PaletteExtractor := preload("res://scripts/palette_extractor.gd")
+## Autoload singleton: owns the current background image and the 4
+## user-chosen accent colors (low/mid/high band + text/bar) picked via the
+## esc menu's color pickers.
 
 signal background_changed(image: Image, texture: ImageTexture)
-signal palette_changed(colors: Array)
-signal bands_changed(bands: Dictionary)
+signal colors_changed(colors: Dictionary)
 
 var current_path: String = ""
 var current_image: Image
 var current_texture: ImageTexture
-var current_palette: Array = []
-var current_bands: Dictionary = {}
+
+var current_colors: Dictionary = {
+	"low": Color(0.9, 0.45, 0.15),
+	"mid": Color(0.85, 0.15, 0.15),
+	"high": Color(0.95, 0.85, 0.25),
+	"accent": Color(1, 1, 1),
+}
 
 
 ## Loads an image from disk (res:// or an absolute user path) and broadcasts it.
@@ -28,10 +30,10 @@ func set_background(path: String) -> bool:
 	current_image = image
 	current_texture = ImageTexture.create_from_image(image)
 	background_changed.emit(current_image, current_texture)
-
-	var swatches := PaletteExtractor.generate(current_image)
-	current_palette = PaletteExtractor.pick_three(swatches)
-	palette_changed.emit(current_palette)
-	current_bands = PaletteExtractor.pick_bands(swatches)
-	bands_changed.emit(current_bands)
 	return true
+
+
+## `band` is one of "low", "mid", "high", "accent".
+func set_color(band: String, color: Color) -> void:
+	current_colors[band] = color
+	colors_changed.emit(current_colors)

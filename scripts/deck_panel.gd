@@ -23,6 +23,8 @@ func _ready() -> void:
 	set_process(true)
 	MixxxClient.track_loaded.connect(_on_track_loaded)
 	MixxxClient.cover_art_received.connect(_on_cover_art_received)
+	BackgroundManager.colors_changed.connect(_on_colors_changed)
+	_on_colors_changed(BackgroundManager.current_colors)
 
 	if MixxxClient.decks.has(deck_id):
 		_refresh_track_info()
@@ -45,6 +47,11 @@ func _on_cover_art_received(loaded_deck_id: String) -> void:
 	var deck: Dictionary = MixxxClient.decks.get(deck_id, {})
 	if deck.has("cover_texture"):
 		cover_rect.texture = deck["cover_texture"]
+
+
+func _on_colors_changed(colors: Dictionary) -> void:
+	artist_label.add_theme_color_override("font_color", colors["accent"])
+	title_label.add_theme_color_override("font_color", colors["accent"])
 
 
 func _refresh_track_info() -> void:

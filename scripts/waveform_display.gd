@@ -14,24 +14,24 @@ const PLAYHEAD_COLOR := Color(1, 1, 1, 0.9)
 ## literal -1.0 sentinel means "no track" — anything else gets clamped.
 const NO_TRACK_POS_THRESHOLD := -0.5
 
-## Band accent colors, sourced from the current background's palette (low =
-## dark variant/muted, mid = vibrant/muted, high = light variant/muted).
+## Band accent colors, user-chosen via the esc menu's color pickers.
 var _color_low := Color(0.9, 0.45, 0.15, ALPHA_LOW)
 var _color_mid := Color(0.85, 0.15, 0.15, ALPHA_MID)
 var _color_high := Color(0.95, 0.85, 0.25, ALPHA_HIGH)
+var _color_playhead := PLAYHEAD_COLOR
 
 
 func _ready() -> void:
 	set_process(true)
-	BackgroundManager.bands_changed.connect(_on_bands_changed)
-	if not BackgroundManager.current_bands.is_empty():
-		_on_bands_changed(BackgroundManager.current_bands)
+	BackgroundManager.colors_changed.connect(_on_colors_changed)
+	_on_colors_changed(BackgroundManager.current_colors)
 
 
-func _on_bands_changed(bands: Dictionary) -> void:
-	_color_low = Color(bands["low"], ALPHA_LOW)
-	_color_mid = Color(bands["mid"], ALPHA_MID)
-	_color_high = Color(bands["high"], ALPHA_HIGH)
+func _on_colors_changed(colors: Dictionary) -> void:
+	_color_low = Color(colors["low"], ALPHA_LOW)
+	_color_mid = Color(colors["mid"], ALPHA_MID)
+	_color_high = Color(colors["high"], ALPHA_HIGH)
+	_color_playhead = Color(colors["accent"], PLAYHEAD_COLOR.a)
 
 
 func _process(_delta: float) -> void:
@@ -45,13 +45,13 @@ func _draw() -> void:
 
 	var deck: Dictionary = MixxxClient.decks.get(deck_id, {})
 	if not deck.has("waveform_frame_count") or not deck.has("waveform_bytes"):
-		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), PLAYHEAD_COLOR, 2.0)
+		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), _color_playhead, 2.0)
 		return
 
 	var levels: Dictionary = MixxxClient.latest_levels.get(deck_id, {})
 	var pos: float = levels.get("pos", -1.0)
 	if pos <= NO_TRACK_POS_THRESHOLD:
-		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), PLAYHEAD_COLOR, 2.0)
+		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), _color_playhead, 2.0)
 		return
 	pos = clamp(pos, 0.0, 1.0)
 
@@ -90,7 +90,7 @@ func _draw() -> void:
 		_draw_band_bar(x, bar_width, mid_amp, half_height, _color_mid)
 		_draw_band_bar(x, bar_width, high_amp, half_height, _color_high)
 
-	draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), PLAYHEAD_COLOR, 2.0)
+	draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), _color_playhead, 2.0)
 
 
 func _draw_band_bar(x: float, width: float, amplitude: float, half_height: float, color: Color) -> void:

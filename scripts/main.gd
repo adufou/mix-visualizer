@@ -10,6 +10,10 @@ const DeckPanelScene := preload("res://scenes/deck_panel.tscn")
 @onready var settings_menu: Control = %SettingsMenu
 @onready var select_background_button: Button = %SelectBackgroundButton
 @onready var background_file_dialog: FileDialog = %BackgroundFileDialog
+@onready var low_color_picker: ColorPickerButton = %LowColorPicker
+@onready var mid_color_picker: ColorPickerButton = %MidColorPicker
+@onready var high_color_picker: ColorPickerButton = %HighColorPicker
+@onready var accent_color_picker: ColorPickerButton = %AccentColorPicker
 
 const ACTIVE_DECKS := ["[Channel1]", "[Channel2]"]
 
@@ -18,6 +22,14 @@ func _ready() -> void:
 	BackgroundManager.background_changed.connect(_on_background_changed)
 	select_background_button.pressed.connect(_on_select_background_pressed)
 	background_file_dialog.file_selected.connect(_on_background_file_selected)
+	low_color_picker.color = BackgroundManager.current_colors["low"]
+	mid_color_picker.color = BackgroundManager.current_colors["mid"]
+	high_color_picker.color = BackgroundManager.current_colors["high"]
+	accent_color_picker.color = BackgroundManager.current_colors["accent"]
+	low_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("low", c))
+	mid_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("mid", c))
+	high_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("high", c))
+	accent_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("accent", c))
 	var slots := [top_deck_slot, bottom_deck_slot]
 	for i in ACTIVE_DECKS.size():
 		var panel := DeckPanelScene.instantiate()
