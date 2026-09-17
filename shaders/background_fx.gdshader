@@ -15,7 +15,7 @@ uniform float beat_phase : hint_range(0.0, 1.0) = 0.0;
 uniform float beat_pulse : hint_range(0.0, 1.0) = 0.0;
 uniform float bpm = 0.0;
 
-uniform float distort_speed = 1.5;
+uniform float distort_speed = 1.0;
 uniform float distort_frequency = 12.0;
 uniform float glow_threshold : hint_range(0.0, 1.0) = 0.55;
 uniform vec4 glow_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
@@ -30,6 +30,27 @@ float rand(vec2 co) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
+// Smooth value noise (bilinear-interpolated hash lattice) — gives the heat
+// wobble an organic, non-repeating drift instead of a clean sine ripple.
+float value_noise(vec2 co) {
+	vec2 i = floor(co);
+	vec2 f = fract(co);
+	float a = rand(i);
+	float b = rand(i + vec2(1.0, 0.0));
+	float c = rand(i + vec2(0.0, 1.0));
+	float d = rand(i + vec2(1.0, 1.0));
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+// Two-octave fbm: cheap enough for per-pixel use, enough detail to break up
+// the single-frequency look of raw value noise.
+float fbm(vec2 co) {
+	float n = value_noise(co) * 0.6;
+	n += value_noise(co * 2.3 + 11.0) * 0.4;
+	return n;
+}
+
 void fragment() {
 	// Low band: heat rises, so distortion is strongest at the bottom, fading
 	// out near the top. Wobble speed tracks BPM (120 BPM = baseline speed) so
@@ -37,10 +58,13 @@ void fragment() {
 	float tempo_scale = bpm > 0.0 ? bpm / 120.0 : 1.0;
 	float t = TIME * distort_speed * tempo_scale;
 	float rise = 1.0 - UV.y;
-	float wobble_x = sin(UV.y * distort_frequency + t) * 0.012
-			+ sin(UV.y * distort_frequency * 2.3 - t * 1.7) * 0.006;
-	float wobble_y = sin(UV.x * distort_frequency * 0.8 - t * 1.3) * 0.008
-			+ sin(UV.x * distort_frequency * 1.9 + t * 0.6) * 0.004;
+	// Flow-field drift instead of clean sine ripple — same t (so speed still
+	// tracks bpm), but fbm's uneven lattice makes the wobble look like real
+	// rising heat instead of a repeating wave. x/y sample different regions
+	// of the noise (offset + opposite drift direction) so they decorrelate.
+	vec2 flow_uv = UV * distort_frequency * 0.25;
+	float wobble_x = (fbm(flow_uv + vec2(t, -t * 0.6)) - 0.5) * 0.05;
+	float wobble_y = (fbm(flow_uv + vec2(-t * 0.7, t * 0.5) + vec2(5.2, 1.7)) - 0.5) * 0.035;
 
 	// Beat envelope: heat surges right after the beat hits (beat_phase near 0)
 	// and eases off approaching the next one, plus a sharp decaying kick on
