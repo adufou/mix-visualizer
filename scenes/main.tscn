@@ -106,6 +106,19 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Select Background Image..."
 
+[node name="FontRow" type="HBoxContainer" parent="SettingsMenu/VBoxContainer" unique_id=1750167530]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsMenu/VBoxContainer/FontRow" unique_id=902881339]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Font"
+
+[node name="FontOptionButton" type="OptionButton" parent="SettingsMenu/VBoxContainer/FontRow" unique_id=1938448825]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="LowColorRow" type="HBoxContainer" parent="SettingsMenu/VBoxContainer" unique_id=1750167529]
 layout_mode = 2
 

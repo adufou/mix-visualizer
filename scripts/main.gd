@@ -10,6 +10,7 @@ const DeckPanelScene := preload("res://scenes/deck_panel.tscn")
 @onready var settings_menu: Control = %SettingsMenu
 @onready var select_background_button: Button = %SelectBackgroundButton
 @onready var background_file_dialog: FileDialog = %BackgroundFileDialog
+@onready var font_option_button: OptionButton = %FontOptionButton
 @onready var low_color_picker: ColorPickerButton = %LowColorPicker
 @onready var mid_color_picker: ColorPickerButton = %MidColorPicker
 @onready var high_color_picker: ColorPickerButton = %HighColorPicker
@@ -22,6 +23,13 @@ func _ready() -> void:
 	BackgroundManager.background_changed.connect(_on_background_changed)
 	select_background_button.pressed.connect(_on_select_background_pressed)
 	background_file_dialog.file_selected.connect(_on_background_file_selected)
+	theme = Theme.new()
+	FontManager.font_changed.connect(_on_font_changed)
+	for font_name in FontManager.FONTS.keys():
+		font_option_button.add_item(font_name)
+	font_option_button.select(FontManager.FONTS.keys().find(FontManager.current_font_name))
+	_on_font_changed(FontManager.FONTS[FontManager.current_font_name])
+	font_option_button.item_selected.connect(_on_font_item_selected)
 	low_color_picker.color = BackgroundManager.current_colors["low"]
 	mid_color_picker.color = BackgroundManager.current_colors["mid"]
 	high_color_picker.color = BackgroundManager.current_colors["high"]
@@ -57,3 +65,11 @@ func _on_background_file_selected(path: String) -> void:
 
 func _on_background_changed(_image: Image, texture: ImageTexture) -> void:
 	background.texture = texture
+
+
+func _on_font_item_selected(index: int) -> void:
+	FontManager.set_font(font_option_button.get_item_text(index))
+
+
+func _on_font_changed(font: Font) -> void:
+	theme.default_font = font
