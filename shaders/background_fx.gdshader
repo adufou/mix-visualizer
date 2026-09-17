@@ -12,6 +12,7 @@ uniform float distort_speed = 1.5;
 uniform float distort_frequency = 12.0;
 uniform float glow_threshold : hint_range(0.0, 1.0) = 0.55;
 uniform vec4 glow_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float saturation_boost = 1.5;
 uniform float grain_size = 1.6;
 
 // Better-distributed hash than sin/dot — avoids the visible banding that
@@ -47,6 +48,11 @@ void fragment() {
 	float luma = dot(bloom, vec3(0.299, 0.587, 0.114));
 	vec3 bright = max(bloom - glow_threshold, 0.0) / max(1.0 - glow_threshold, 0.0001) * luma;
 	vec3 col = base.rgb + bright * glow_tint.rgb * mid_intensity * 6.0;
+
+	// Mid band, part 2: saturation boost stacked on top of the glow — pushes
+	// color away from grey rather than adding brightness.
+	float col_luma = dot(col, vec3(0.299, 0.587, 0.114));
+	col = mix(vec3(col_luma), col, 1.0 + mid_intensity * saturation_boost);
 
 	// High band: animated film grain. Reseed the hash wholesale each frame
 	// (rather than translating the uv) so it doesn't read as a sliding
