@@ -4,18 +4,20 @@ extends Control
 
 const DeckPanelScene := preload("res://scenes/deck_panel.tscn")
 
-const DEFAULT_BACKGROUND_PATH := "res://ant.jpg"
-
 @onready var top_deck_slot: Control = %TopDeckSlot
 @onready var bottom_deck_slot: Control = %BottomDeckSlot
 @onready var background: TextureRect = %Background
+@onready var settings_menu: Control = %SettingsMenu
+@onready var select_background_button: Button = %SelectBackgroundButton
+@onready var background_file_dialog: FileDialog = %BackgroundFileDialog
 
 const ACTIVE_DECKS := ["[Channel1]", "[Channel2]"]
 
 
 func _ready() -> void:
 	BackgroundManager.background_changed.connect(_on_background_changed)
-	BackgroundManager.set_background(DEFAULT_BACKGROUND_PATH)
+	select_background_button.pressed.connect(_on_select_background_pressed)
+	background_file_dialog.file_selected.connect(_on_background_file_selected)
 	var slots := [top_deck_slot, bottom_deck_slot]
 	for i in ACTIVE_DECKS.size():
 		var panel := DeckPanelScene.instantiate()
@@ -24,6 +26,21 @@ func _ready() -> void:
 		# top, so both label rows meet near the screen's vertical center.
 		panel.reversed = (i == 0)
 		slots[i].add_child(panel)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		settings_menu.visible = not settings_menu.visible
+		get_viewport().set_input_as_handled()
+
+
+func _on_select_background_pressed() -> void:
+	background_file_dialog.popup_centered()
+
+
+func _on_background_file_selected(path: String) -> void:
+	BackgroundManager.set_background(path)
+	settings_menu.visible = false
 
 
 func _on_background_changed(_image: Image, texture: ImageTexture) -> void:

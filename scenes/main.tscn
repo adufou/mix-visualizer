@@ -52,3 +52,41 @@ offset_left = -160.0
 offset_top = -160.0
 offset_right = -20.0
 offset_bottom = -20.0
+
+[node name="SettingsMenu" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -60.0
+offset_right = 150.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SettingsMenu"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsMenu/VBoxContainer"]
+layout_mode = 2
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="SelectBackgroundButton" type="Button" parent="SettingsMenu/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Select Background Image..."
+
+[node name="BackgroundFileDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Select Background Image"
+initial_position = 1
+size = Vector2i(600, 400)
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp, *.bmp ; Image Files")
