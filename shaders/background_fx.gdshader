@@ -22,6 +22,14 @@ uniform vec4 glow_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform float saturation_boost = 2.25;
 uniform float grain_size = 1.6;
 
+// Hum bug: CRT power-supply hum bar. background_fx.gd fires this randomly
+// every 4-32 bars by kicking hum_bug_strength to 1.0 and letting it decay;
+// the bar itself scrolls continuously off TIME so its position isn't synced
+// to the trigger (matches how a real hum bar drifts independent of content).
+uniform float hum_bug_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float hum_bug_speed = 0.15;
+uniform float hum_bug_width = 0.12;
+
 // Better-distributed hash than sin/dot — avoids the visible banding that
 // hash produces at grain scale.
 float rand(vec2 co) {
@@ -102,6 +110,26 @@ void fragment() {
 	vec2 grain_uv = FRAGCOORD.xy / grain_size;
 	float noise = rand(grain_uv + fract(TIME) * 197.0) - 0.5;
 	col += noise * high_intensity * 9.0; // TEMP: cranked for visibility test
+
+	// Hum bug band: horizontal roll with a sync-jitter wobble and bright edge
+	// lines, like a CRT picture rolling under power-supply interference.
+	if (hum_bug_strength > 0.0) {
+		float bar_y = fract(TIME * hum_bug_speed);
+		float dist = abs(UV.y - bar_y);
+		dist = min(dist, 1.0 - dist); // wrap across the 0/1 seam
+		float band = smoothstep(hum_bug_width, 0.0, dist);
+		float amount = band * hum_bug_strength;
+
+		vec2 hum_uv = uv + vec2(sin(bar_y * 40.0 + TIME * 8.0) * 0.01, 0.0) * amount;
+		vec3 hum_col = texture(TEXTURE, hum_uv).rgb;
+
+		float edge = smoothstep(hum_bug_width, hum_bug_width * 0.4, dist)
+				- smoothstep(hum_bug_width * 0.4, 0.0, dist);
+		hum_col *= mix(1.0, 1.35, edge);
+		hum_col = mix(hum_col, vec3(dot(hum_col, vec3(0.299, 0.587, 0.114))), 0.3 * band);
+
+		col = mix(col, hum_col, amount);
+	}
 
 	COLOR = vec4(col, base.a);
 }
