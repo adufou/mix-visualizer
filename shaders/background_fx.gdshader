@@ -19,7 +19,7 @@ uniform float distort_speed = 1.0;
 uniform float distort_frequency = 12.0;
 uniform float glow_threshold : hint_range(0.0, 1.0) = 0.55;
 uniform vec4 glow_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform float saturation_boost = 1.5;
+uniform float saturation_boost = 2.25;
 uniform float grain_size = 1.6;
 
 // Better-distributed hash than sin/dot — avoids the visible banding that
@@ -89,7 +89,7 @@ void fragment() {
 	bloom /= 8.0;
 	float luma = dot(bloom, vec3(0.299, 0.587, 0.114));
 	vec3 bright = max(bloom - glow_threshold, 0.0) / max(1.0 - glow_threshold, 0.0001) * luma;
-	vec3 col = base.rgb + bright * glow_tint.rgb * mid_intensity * 6.0;
+	vec3 col = base.rgb + bright * glow_tint.rgb * mid_intensity * 9.0;
 
 	// Mid band, part 2: saturation boost stacked on top of the glow — pushes
 	// color away from grey rather than adding brightness.
@@ -101,7 +101,7 @@ void fragment() {
 	// pattern, just flicker — like real film grain.
 	vec2 grain_uv = FRAGCOORD.xy / grain_size;
 	float noise = rand(grain_uv + fract(TIME) * 197.0) - 0.5;
-	col += noise * high_intensity * 6.0; // TEMP: cranked for visibility test
+	col += noise * high_intensity * 9.0; // TEMP: cranked for visibility test
 
 	COLOR = vec4(col, base.a);
 }
