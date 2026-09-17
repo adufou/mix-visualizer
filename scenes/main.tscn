@@ -156,9 +156,10 @@ color = Color(1, 1, 1, 1)
 
 [node name="BackgroundFileDialog" type="FileDialog" parent="." unique_id=467593803]
 unique_name_in_owner = true
-title = "Open a File"
+title = "Select Background Image"
 initial_position = 1
 size = Vector2i(600, 400)
+use_native_dialog = true
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp, *.bmp ; Image Files")
