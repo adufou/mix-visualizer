@@ -6,7 +6,7 @@ const DeckPanelScene := preload("res://scenes/deck_panel.tscn")
 
 @onready var top_deck_slot: Control = %TopDeckSlot
 @onready var bottom_deck_slot: Control = %BottomDeckSlot
-@onready var background: TextureRect = %Background
+@onready var background: BackgroundFx = %Background
 @onready var settings_menu: Control = %SettingsMenu
 @onready var select_background_button: Button = %SelectBackgroundButton
 @onready var background_file_dialog: FileDialog = %BackgroundFileDialog
@@ -15,6 +15,7 @@ const DeckPanelScene := preload("res://scenes/deck_panel.tscn")
 @onready var mid_color_picker: ColorPickerButton = %MidColorPicker
 @onready var high_color_picker: ColorPickerButton = %HighColorPicker
 @onready var accent_color_picker: ColorPickerButton = %AccentColorPicker
+@onready var shader_toggles: VBoxContainer = %ShaderToggles
 
 const ACTIVE_DECKS := ["[Channel1]", "[Channel2]"]
 
@@ -38,6 +39,7 @@ func _ready() -> void:
 	mid_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("mid", c))
 	high_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("high", c))
 	accent_color_picker.color_changed.connect(func(c): BackgroundManager.set_color("accent", c))
+	_build_shader_toggles()
 	var slots := [top_deck_slot, bottom_deck_slot]
 	for i in ACTIVE_DECKS.size():
 		var panel := DeckPanelScene.instantiate()
@@ -83,3 +85,28 @@ func _on_font_item_selected(index: int) -> void:
 
 func _on_font_changed(font: Font) -> void:
 	theme.default_font = font
+
+
+## One master "All shaders" switch plus one per effect in background_fx.gd's
+## EFFECTS. Per-effect switches grey out while the master is off.
+func _build_shader_toggles() -> void:
+	var all_toggle := CheckButton.new()
+	all_toggle.text = "All shaders"
+	all_toggle.button_pressed = background.is_all_enabled()
+	shader_toggles.add_child(all_toggle)
+
+	var effect_toggles: Array[CheckButton] = []
+	for effect in background.EFFECTS.keys():
+		var toggle := CheckButton.new()
+		toggle.text = effect
+		toggle.button_pressed = background.is_effect_enabled(effect)
+		toggle.disabled = not all_toggle.button_pressed
+		toggle.toggled.connect(func(on): background.set_effect_enabled(effect, on))
+		shader_toggles.add_child(toggle)
+		effect_toggles.append(toggle)
+
+	all_toggle.toggled.connect(func(on):
+		background.set_all_enabled(on)
+		for toggle in effect_toggles:
+			toggle.disabled = not on
+	)

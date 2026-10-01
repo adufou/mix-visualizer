@@ -1,9 +1,19 @@
+class_name BackgroundFx
 extends TextureRect
 ## Drives background_fx.gdshader's 3 intensity uniforms from master's
 ## low/mid/high band levels (MixxxClient.master), with light lerp/decay
 ## toward each new value — same smoothing approach as master_meter.gd.
 ## Also feeds the heat wobble a tempo sync (bpm, beat_phase, beat_pulse) taken
 ## from whichever deck currently dominates the mix (MixxxClient.latest_levels).
+## Exposes per-effect and master on/off toggles for the esc menu.
+
+## Effect name -> the shader's bool uniform gating that stage.
+const EFFECTS := {
+	"Heat": "heat_enabled",
+	"Glow": "glow_enabled",
+	"Saturation": "saturation_enabled",
+	"Grain": "grain_enabled",
+}
 
 const DECAY_SPEED := 10.0
 
@@ -15,16 +25,6 @@ const LOW_RELEASE_TAU := 0.1
 ## Decaying kick applied to the heat shader on each beat hit.
 const BEAT_PULSE_DECAY_TAU := 0.15
 
-## Hum bug: CRT hum bar fired at random, every 4-32 bars. Assumes 4/4 (Mixxx's
-## feed has no time-signature field), counted off the same beat wraps as
-## beat_pulse. Decays like beat_pulse rather than running a fixed timer, so it
-## plays out at whatever length feels right for the tau instead of needing a
-## separate duration constant.
-const HUM_BUG_BARS_MIN := 4
-const HUM_BUG_BARS_MAX := 32
-const BEATS_PER_BAR := 4
-const HUM_BUG_DECAY_TAU := 0.6
-
 var _display_low := 0.0
 var _display_mid := 0.0
 var _display_high := 0.0
@@ -34,14 +34,34 @@ var _beat_pulse := 0.0
 var _prev_beat_distance := 0.0
 var _display_bpm := 0.0
 
-var _beat_count := 0
-var _bars_until_hum_bug := 0
-var _hum_bug_strength := 0.0
+## Kept so the master toggle can strip the material and put it back.
+@onready var _fx_material: ShaderMaterial = material
+var _effect_enabled := {}
 
 
 func _ready() -> void:
-	randomize()
-	_bars_until_hum_bug = randi_range(HUM_BUG_BARS_MIN, HUM_BUG_BARS_MAX)
+	for effect in EFFECTS.keys():
+		set_effect_enabled(effect, true)
+
+
+func is_all_enabled() -> bool:
+	return material != null
+
+
+## Master toggle: off removes the material entirely (plain image, no shader
+## cost) and stops feeding uniforms.
+func set_all_enabled(enabled: bool) -> void:
+	material = _fx_material if enabled else null
+	set_process(enabled)
+
+
+func is_effect_enabled(effect: String) -> bool:
+	return _effect_enabled[effect]
+
+
+func set_effect_enabled(effect: String, enabled: bool) -> void:
+	_effect_enabled[effect] = enabled
+	_fx_material.set_shader_parameter(EFFECTS[effect], enabled)
 
 
 func _process(delta: float) -> void:
@@ -53,7 +73,6 @@ func _process(delta: float) -> void:
 	_display_high = lerp(_display_high, clamp(float(MixxxClient.master.get("high", 0.0)), 0.0, 1.0), t)
 
 	_update_beat_sync(delta)
-	_hum_bug_strength = lerp(_hum_bug_strength, 0.0, clamp(1.0 - exp(-delta / HUM_BUG_DECAY_TAU), 0.0, 1.0))
 
 	material.set_shader_parameter("low_intensity", _display_low)
 	material.set_shader_parameter("mid_intensity", _display_mid)
@@ -61,7 +80,6 @@ func _process(delta: float) -> void:
 	material.set_shader_parameter("beat_phase", _beat_phase)
 	material.set_shader_parameter("beat_pulse", _beat_pulse)
 	material.set_shader_parameter("bpm", _display_bpm)
-	material.set_shader_parameter("hum_bug_strength", _hum_bug_strength)
 
 
 ## Tempo sync source: the loudest deck that's actually playing a track
@@ -90,20 +108,8 @@ func _update_beat_sync(delta: float) -> void:
 		var beat_distance: float = float(deck.get("beat_distance", 0.0))
 		if _prev_beat_distance > 0.9 and beat_distance < 0.1:
 			_beat_pulse = 1.0
-			_on_beat_hit()
 		_prev_beat_distance = beat_distance
 		_beat_phase = beat_distance
 
 	_beat_pulse = lerp(_beat_pulse, 0.0, clamp(1.0 - exp(-delta / BEAT_PULSE_DECAY_TAU), 0.0, 1.0))
 
-
-## Counts bars off beat wraps and fires the hum bug once the random interval
-## elapses, then re-rolls the next interval.
-func _on_beat_hit() -> void:
-	_beat_count += 1
-	if _beat_count % BEATS_PER_BAR != 0:
-		return
-	_bars_until_hum_bug -= 1
-	if _bars_until_hum_bug <= 0:
-		_hum_bug_strength = 1.0
-		_bars_until_hum_bug = randi_range(HUM_BUG_BARS_MIN, HUM_BUG_BARS_MAX)

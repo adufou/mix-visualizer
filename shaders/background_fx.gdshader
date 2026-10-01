@@ -1,17 +1,17 @@
 shader_type canvas_item;
 // Background image FX chain. Each effect lives in shaders/fx/ as a pure
 // function; this file only owns the uniforms and the stage order:
-//   1. warp    — sum UV offsets (heat, hum jitter), sample once
+//   1. warp    — sum UV offsets (heat), sample once
 //   2. sample  — effects reading neighbouring texels of the warped uv (glow)
 //   3. grade   — per-pixel color ops (saturation)
-//   4. overlay — screen-space layers drawn last (hum bar lines, grain)
+//   4. overlay — screen-space layers drawn last (grain)
+// Each effect has an *_enabled toggle, set from the esc menu.
 // Strengths are driven by master's 3 band levels plus tempo sync, fed by
 // background_fx.gd. Reads the node's own TEXTURE rather than SCREEN_TEXTURE,
 // so it doesn't depend on backbuffer-copy timing across nodes.
 
 #include "res://shaders/fx/common.gdshaderinc"
 #include "res://shaders/fx/heat.gdshaderinc"
-#include "res://shaders/fx/hum.gdshaderinc"
 #include "res://shaders/fx/glow.gdshaderinc"
 #include "res://shaders/fx/grade.gdshaderinc"
 #include "res://shaders/fx/grain.gdshaderinc"
@@ -34,11 +34,10 @@ uniform vec4 glow_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform float saturation_boost = 2.25;
 uniform float grain_size = 1.6;
 
-// Hum bug: background_fx.gd fires this randomly every 4-32 bars by kicking
-// hum_bug_strength to 1.0 and letting it decay.
-uniform float hum_bug_strength : hint_range(0.0, 1.0) = 0.0;
-uniform float hum_bug_speed = 0.15;
-uniform float hum_bug_width = 0.12;
+uniform bool heat_enabled = true;
+uniform bool glow_enabled = true;
+uniform bool saturation_enabled = true;
+uniform bool grain_enabled = true;
 
 void fragment() {
 	// 1. Warp. Heat wobble speed tracks BPM (120 BPM = baseline speed), falling
@@ -46,20 +45,27 @@ void fragment() {
 	float tempo_scale = bpm > 0.0 ? bpm / 120.0 : 1.0;
 	float heat_t = TIME * distort_speed * tempo_scale;
 	float heat_amp = heat_amplitude(low_intensity, beat_phase, beat_pulse);
-	vec2 uv = UV
-		+ heat_offset(UV, heat_amp, heat_t, distort_frequency)
-		+ hum_offset(UV.y, TIME, hum_bug_speed, hum_bug_width, hum_bug_strength);
+	vec2 uv = UV;
+	if (heat_enabled) {
+		uv += heat_offset(UV, heat_amp, heat_t, distort_frequency);
+	}
 	vec4 base = texture(TEXTURE, uv);
+	vec3 col = base.rgb;
 
 	// 2. Sample.
-	vec3 col = base.rgb + glow(TEXTURE, uv, TEXTURE_PIXEL_SIZE, glow_threshold, glow_tint.rgb, mid_intensity);
+	if (glow_enabled) {
+		col += glow(TEXTURE, uv, TEXTURE_PIXEL_SIZE, glow_threshold, glow_tint.rgb, mid_intensity);
+	}
 
 	// 3. Grade.
-	col = saturate_color(col, mid_intensity * saturation_boost);
+	if (saturation_enabled) {
+		col = saturate_color(col, mid_intensity * saturation_boost);
+	}
 
 	// 4. Overlay.
-	col = hum_overlay(col, UV.y, TIME, hum_bug_speed, hum_bug_width, hum_bug_strength);
-	col = grain(col, FRAGCOORD.xy, TIME, grain_size, high_intensity);
+	if (grain_enabled) {
+		col = grain(col, FRAGCOORD.xy, TIME, grain_size, high_intensity);
+	}
 
 	COLOR = vec4(col, base.a);
 }
