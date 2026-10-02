@@ -20,6 +20,23 @@ static func video_encoders(path: String) -> PackedStringArray:
 	return found
 
 
+## The subset of video_encoders(path) that really works on this machine:
+## ffmpeg lists GPU encoders it was built with even when the GPU, driver or
+## generation (e.g. AV1 needs an RTX 40) isn't there. Each one encodes a few
+## blank frames with the exact args a render would use. ~2 s total: call it
+## from a worker thread.
+static func working_encoders(path: String) -> PackedStringArray:
+	var working: PackedStringArray = []
+	for encoder in video_encoders(path):
+		var args: PackedStringArray = ["-hide_banner", "-loglevel", "error",
+				"-f", "lavfi", "-i", "color=black:s=640x360:r=60", "-frames:v", "3"]
+		args.append_array(RenderJob.encoder_args(encoder, 20))
+		args.append_array(["-f", "null", "-"])
+		if OS.execute(path, args, [], true) == 0:
+			working.append(encoder)
+	return working
+
+
 ## First candidate with libx264, or "" if none.
 static func find() -> String:
 	for candidate in _candidates():

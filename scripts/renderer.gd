@@ -99,13 +99,8 @@ func _ffmpeg_args(size: Vector2i, audio_path: String, duration: float) -> Packed
 	if not audio_path.is_empty():
 		args.append_array(["-ss", "%.6f" % _range_start, "-t", "%.6f" % duration, "-i", audio_path,
 				"-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "320k", "-shortest"])
-	var quality := str(int(output["quality"]))
-	match str(output["encoder"]):
-		"h264_nvenc", "hevc_nvenc":
-			args.append_array(["-c:v", output["encoder"], "-preset", "p7", "-rc", "vbr", "-cq", quality, "-b:v", "0"])
-		_:
-			args.append_array(["-c:v", "libx264", "-preset", "slow", "-crf", quality])
-	args.append_array(["-pix_fmt", "yuv420p", "-movflags", "+faststart", output["path"]])
+	args.append_array(RenderJob.encoder_args(str(output["encoder"]), int(output["quality"])))
+	args.append_array(["-movflags", "+faststart", output["path"]])
 	return args
 
 

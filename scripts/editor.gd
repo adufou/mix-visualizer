@@ -53,7 +53,9 @@ var _load_thread: Thread
 var _loading_recording: MixRecording
 var _loading_audio: AudioStreamWAV
 
+## Encoders that passed a test encode with the current ffmpeg.
 var _ffmpeg_encoders: PackedStringArray = []
+var _encoder_thread: Thread
 
 var _render_pid := -1
 var _render_status_path := ""
@@ -82,6 +84,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if _load_thread != null:
 		_load_thread.wait_to_finish()
+	if _encoder_thread != null:
+		_encoder_thread.wait_to_finish()
 
 
 # --- Session -----------------------------------------------------------------
@@ -178,6 +182,7 @@ func _poll_loading() -> void:
 
 func _process(delta: float) -> void:
 	_poll_loading()
+	_poll_encoder_probe()
 	_poll_render(delta)
 	if not MixData.has_recording():
 		return
@@ -335,13 +340,10 @@ func _init_output_controls() -> void:
 		output["fps"] = FPS_CHOICES[index]
 		_save())
 
-	for encoder in RenderJob.ENCODERS:
-		encoder_option.add_item(encoder)
-	encoder_option.select(max(0, RenderJob.ENCODERS.find(str(output["encoder"]))))
+	# Filled once the background probe knows which encoders work here.
 	encoder_option.item_selected.connect(func(index):
-		output["encoder"] = RenderJob.ENCODERS[index]
-		_save()
-		_update_ffmpeg_status())
+		output["encoder"] = encoder_option.get_item_metadata(index)
+		_save())
 
 	quality_spin.value = float(output["quality"])
 	quality_spin.value_changed.connect(func(value):
@@ -386,29 +388,57 @@ func _on_ffmpeg_path_changed(path: String) -> void:
 	_probe_ffmpeg()
 
 
-## Lists the video encoders the chosen ffmpeg actually has. If it can't
-## encode H.264 (empty field, file gone after an update, audio-only build),
-## looks for one that can and keeps it in the settings.
+## Finds a usable ffmpeg and test-encodes with each known encoder, in a
+## worker thread (~2 s). If the saved ffmpeg can't encode H.264 (empty field,
+## file gone after an update, audio-only build), it looks for one that can and
+## keeps it in the settings.
 func _probe_ffmpeg() -> void:
-	_ffmpeg_encoders = FfmpegLocator.video_encoders(_job["output"]["ffmpeg"])
-	if not _ffmpeg_encoders.has("libx264"):
+	if _encoder_thread != null:
+		return
+	_ffmpeg_encoders = []
+	encoder_option.disabled = true
+	ffmpeg_status.text = "Detecting encoders..."
+	_encoder_thread = Thread.new()
+	_encoder_thread.start(_probe_in_thread.bind(str(_job["output"]["ffmpeg"])))
+
+
+func _probe_in_thread(path: String) -> Dictionary:
+	if not FfmpegLocator.video_encoders(path).has("libx264"):
 		var found := FfmpegLocator.find()
 		if not found.is_empty():
-			_job["output"]["ffmpeg"] = found
-			ffmpeg_path_edit.text = found
-			_save()
-			_ffmpeg_encoders = FfmpegLocator.video_encoders(found)
-	_update_ffmpeg_status()
+			path = found
+	return {"path": path, "encoders": FfmpegLocator.working_encoders(path)}
 
 
-func _update_ffmpeg_status() -> void:
-	var encoder: String = _job["output"]["encoder"]
+func _poll_encoder_probe() -> void:
+	if _encoder_thread == null or _encoder_thread.is_alive():
+		return
+	var result: Dictionary = _encoder_thread.wait_to_finish()
+	_encoder_thread = null
+	var output: Dictionary = _job["output"]
+	if result["path"] != output["ffmpeg"]:
+		output["ffmpeg"] = result["path"]
+		ffmpeg_path_edit.text = result["path"]
+		_save()
+	_ffmpeg_encoders = result["encoders"]
+
+	encoder_option.clear()
+	for encoder in RenderJob.ENCODERS.keys():
+		if _ffmpeg_encoders.has(encoder):
+			encoder_option.add_item(RenderJob.ENCODERS[encoder])
+			encoder_option.set_item_metadata(encoder_option.item_count - 1, encoder)
+	encoder_option.disabled = _ffmpeg_encoders.is_empty()
+	if not _ffmpeg_encoders.is_empty() and not _ffmpeg_encoders.has(str(output["encoder"])):
+		output["encoder"] = RenderJob.DEFAULT_ENCODER if _ffmpeg_encoders.has(RenderJob.DEFAULT_ENCODER) else _ffmpeg_encoders[0]
+		_save()
+	for i in encoder_option.item_count:
+		if encoder_option.get_item_metadata(i) == output["encoder"]:
+			encoder_option.select(i)
+
 	if _ffmpeg_encoders.is_empty():
 		ffmpeg_status.text = "No ffmpeg that can encode video was found. Install one (winget install Gyan.FFmpeg) or point to ffmpeg.exe."
-	elif not _ffmpeg_encoders.has(encoder):
-		ffmpeg_status.text = "This ffmpeg has no %s. Available: %s" % [encoder, ", ".join(_ffmpeg_encoders)]
 	else:
-		ffmpeg_status.text = "ffmpeg OK (%s)" % ", ".join(_ffmpeg_encoders)
+		ffmpeg_status.text = "ffmpeg OK · %d encoders work on this PC" % _ffmpeg_encoders.size()
 
 
 func _validate_job() -> String:
@@ -419,6 +449,8 @@ func _validate_job() -> String:
 		return "Choose an output file."
 	if not DirAccess.dir_exists_absolute(str(output["path"]).get_base_dir()):
 		return "Output folder doesn't exist."
+	if _encoder_thread != null:
+		return "Still detecting encoders, try again in a second."
 	if not _ffmpeg_encoders.has(str(output["encoder"])):
 		return ffmpeg_status.text
 	var end := float(output["range_end"]) if float(output["range_end"]) > 0.0 else _duration
