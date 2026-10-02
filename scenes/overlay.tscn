@@ -1,0 +1,100 @@
+[gd_scene format=3 uid="uid://c7ovl0y5mxv01"]
+
+[ext_resource type="Script" uid="uid://c2i3ulls4aiml" path="res://scripts/overlay.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://daswjmg1p3jn3" path="res://scenes/master_meter.tscn" id="2"]
+[ext_resource type="Script" uid="uid://q661i2110t8f" path="res://scripts/background_fx.gd" id="3"]
+[ext_resource type="Shader" uid="uid://byjh820uvg8ph" path="res://shaders/background_fx.gdshader" id="4"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_background_fx"]
+shader = ExtResource("4")
+shader_parameter/low_intensity = 0.0
+shader_parameter/mid_intensity = 0.0
+shader_parameter/high_intensity = 0.0
+shader_parameter/beat_phase = 0.0
+shader_parameter/beat_pulse = 0.0
+shader_parameter/bpm = 0.0
+shader_parameter/distort_speed = 1.0
+shader_parameter/distort_frequency = 12.0
+shader_parameter/glow_threshold = 0.1
+shader_parameter/glow_tint = Color(1, 1, 1, 1)
+shader_parameter/saturation_boost = 8.0
+shader_parameter/grain_size = 1.6
+shader_parameter/heat_enabled = true
+shader_parameter/glow_enabled = true
+shader_parameter/saturation_enabled = true
+shader_parameter/grain_enabled = true
+
+[node name="Overlay" type="Control" unique_id=395641574]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="BackgroundFill" type="ColorRect" parent="." unique_id=1248263364]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Background" type="TextureRect" parent="." unique_id=817163690]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_background_fx")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+script = ExtResource("3")
+
+[node name="TopDeckSlot" type="VBoxContainer" parent="." unique_id=571058535]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="BottomDeckSlot" type="VBoxContainer" parent="." unique_id=433751078]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="MasterMeter" parent="." unique_id=217333127 instance=ExtResource("2")]
+process_mode = 4
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -260.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0

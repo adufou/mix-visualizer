@@ -16,9 +16,9 @@ const MAX_BAR_HEIGHT := 100.0 # matches each bar container's custom_minimum_size
 
 func _process(delta: float) -> void:
 	var t: float = clamp(delta * DECAY_SPEED, 0.0, 1.0)
-	_display_low = lerp(_display_low, float(MixxxClient.master.get("low", 0.0)), t)
-	_display_mid = lerp(_display_mid, float(MixxxClient.master.get("mid", 0.0)), t)
-	_display_high = lerp(_display_high, float(MixxxClient.master.get("high", 0.0)), t)
+	_display_low = lerp(_display_low, float(MixData.master.get("low", 0.0)), t)
+	_display_mid = lerp(_display_mid, float(MixData.master.get("mid", 0.0)), t)
+	_display_high = lerp(_display_high, float(MixData.master.get("high", 0.0)), t)
 
 	_apply_bar_height(low_bar, _display_low)
 	_apply_bar_height(mid_bar, _display_mid)

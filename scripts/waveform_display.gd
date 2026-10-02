@@ -43,12 +43,12 @@ func _draw() -> void:
 	var center_x := rect_size.x * 0.5
 	var half_height := rect_size.y * 0.5
 
-	var deck: Dictionary = MixxxClient.decks.get(deck_id, {})
+	var deck: Dictionary = MixData.decks.get(deck_id, {})
 	if not deck.has("waveform_frame_count") or not deck.has("waveform_bytes"):
 		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), _color_playhead, 2.0)
 		return
 
-	var levels: Dictionary = MixxxClient.latest_levels.get(deck_id, {})
+	var levels: Dictionary = MixData.latest_levels.get(deck_id, {})
 	var pos: float = levels.get("pos", -1.0)
 	if pos <= NO_TRACK_POS_THRESHOLD:
 		draw_line(Vector2(center_x, 0), Vector2(center_x, rect_size.y), _color_playhead, 2.0)

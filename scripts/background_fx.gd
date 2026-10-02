@@ -1,10 +1,10 @@
 class_name BackgroundFx
 extends TextureRect
 ## Drives background_fx.gdshader's 3 intensity uniforms from master's
-## low/mid/high band levels (MixxxClient.master), with light lerp/decay
+## low/mid/high band levels (MixData.master), with light lerp/decay
 ## toward each new value — same smoothing approach as master_meter.gd.
 ## Also feeds the heat wobble a tempo sync (bpm, beat_phase, beat_pulse) taken
-## from whichever deck currently dominates the mix (MixxxClient.latest_levels).
+## from whichever deck currently dominates the mix (MixData.latest_levels).
 ## Exposes per-effect and master on/off toggles for the esc menu.
 
 ## Effect name -> the shader's bool uniform gating that stage.
@@ -66,11 +66,11 @@ func set_effect_enabled(effect: String, enabled: bool) -> void:
 
 func _process(delta: float) -> void:
 	var t: float = clamp(delta * DECAY_SPEED, 0.0, 1.0)
-	var low_target: float = clamp(float(MixxxClient.master.get("low", 0.0)), 0.0, 1.0)
+	var low_target: float = clamp(float(MixData.master.get("low", 0.0)), 0.0, 1.0)
 	var tau: float = LOW_ATTACK_TAU if low_target > _display_low else LOW_RELEASE_TAU
 	_display_low = lerp(_display_low, low_target, clamp(1.0 - exp(-delta / tau), 0.0, 1.0))
-	_display_mid = lerp(_display_mid, clamp(float(MixxxClient.master.get("mid", 0.0)), 0.0, 1.0), t)
-	_display_high = lerp(_display_high, clamp(float(MixxxClient.master.get("high", 0.0)), 0.0, 1.0), t)
+	_display_mid = lerp(_display_mid, clamp(float(MixData.master.get("mid", 0.0)), 0.0, 1.0), t)
+	_display_high = lerp(_display_high, clamp(float(MixData.master.get("high", 0.0)), 0.0, 1.0), t)
 
 	_update_beat_sync(delta)
 
@@ -88,8 +88,8 @@ func _process(delta: float) -> void:
 func _pick_tempo_deck() -> Dictionary:
 	var best: Dictionary = {}
 	var best_volume := -1.0
-	for deck_id in MixxxClient.latest_levels.keys():
-		var levels: Dictionary = MixxxClient.latest_levels[deck_id]
+	for deck_id in MixData.latest_levels.keys():
+		var levels: Dictionary = MixData.latest_levels[deck_id]
 		if float(levels.get("bpm", 0.0)) <= 0.0:
 			continue
 		var volume: float = float(levels.get("volume", 0.0))

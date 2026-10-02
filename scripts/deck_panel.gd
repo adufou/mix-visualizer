@@ -12,26 +12,29 @@ extends Control
 @onready var waveform_display: Control = %WaveformDisplay
 @onready var header: Control = %Header
 
+var _placeholder_cover: Texture2D
+
 
 func _ready() -> void:
 	waveform_display.deck_id = deck_id
-	cover_rect.texture = _make_placeholder_cover()
+	_placeholder_cover = _make_placeholder_cover()
+	cover_rect.texture = _placeholder_cover
 
 	if reversed:
 		header.get_parent().move_child(header, header.get_index() + 1)
 
 	set_process(true)
-	MixxxClient.track_loaded.connect(_on_track_loaded)
-	MixxxClient.cover_art_received.connect(_on_cover_art_received)
+	MixData.track_loaded.connect(_on_track_loaded)
+	MixData.cover_art_received.connect(_on_cover_art_received)
 	BackgroundManager.colors_changed.connect(_on_colors_changed)
 	_on_colors_changed(BackgroundManager.current_colors)
 
-	if MixxxClient.decks.has(deck_id):
-		_refresh_track_info()
+	_refresh_track_info()
+	_on_cover_art_received(deck_id)
 
 
 func _process(_delta: float) -> void:
-	var levels: Dictionary = MixxxClient.latest_levels.get(deck_id, {})
+	var levels: Dictionary = MixData.latest_levels.get(deck_id, {})
 	modulate.a = clamp(levels.get("volume", 1.0), 0.0, 1.0)
 
 
@@ -44,9 +47,10 @@ func _on_track_loaded(loaded_deck_id: String) -> void:
 func _on_cover_art_received(loaded_deck_id: String) -> void:
 	if loaded_deck_id != deck_id:
 		return
-	var deck: Dictionary = MixxxClient.decks.get(deck_id, {})
-	if deck.has("cover_texture"):
-		cover_rect.texture = deck["cover_texture"]
+	# null = the deck's current load has no cover (yet): show the placeholder.
+	var deck: Dictionary = MixData.decks.get(deck_id, {})
+	var cover: Texture2D = deck.get("cover_texture")
+	cover_rect.texture = cover if cover != null else _placeholder_cover
 
 
 func _on_colors_changed(colors: Dictionary) -> void:
@@ -55,7 +59,7 @@ func _on_colors_changed(colors: Dictionary) -> void:
 
 
 func _refresh_track_info() -> void:
-	var deck: Dictionary = MixxxClient.decks.get(deck_id, {})
+	var deck: Dictionary = MixData.decks.get(deck_id, {})
 	artist_label.text = deck.get("artist", "")
 	title_label.text = deck.get("title", "")
 

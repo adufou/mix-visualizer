@@ -1,0 +1,430 @@
+[gd_scene format=3 uid="uid://bq08d44f4yvpv"]
+
+[ext_resource type="Script" uid="uid://byq5deti0jd4v" path="res://scripts/editor.gd" id="1"]
+[ext_resource type="Script" uid="uid://cepqa6u85610j" path="res://scripts/track_strip.gd" id="2"]
+
+[node name="Editor" type="Control" unique_id=440644475]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="PreviewViewport" type="SubViewport" parent="." unique_id=2067906222]
+unique_name_in_owner = true
+disable_3d = true
+size = Vector2i(1920, 1080)
+render_target_update_mode = 4
+
+[node name="Split" type="HSplitContainer" parent="." unique_id=1460213538]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Main" type="VBoxContainer" parent="Split" unique_id=588364059]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PreviewArea" type="AspectRatioContainer" parent="Split/Main" unique_id=1048262289]
+layout_mode = 2
+size_flags_vertical = 3
+ratio = 1.7778
+
+[node name="PreviewRect" type="TextureRect" parent="Split/Main/PreviewArea" unique_id=475942725]
+unique_name_in_owner = true
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Transport" type="HBoxContainer" parent="Split/Main" unique_id=455638363]
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="Split/Main/Transport" unique_id=1695402984]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "Play"
+
+[node name="TimeLabel" type="Label" parent="Split/Main/Transport" unique_id=1735083371]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "00:00.00 / 00:00"
+horizontal_alignment = 1
+
+[node name="Timeline" type="HSlider" parent="Split/Main/Transport" unique_id=1325742287]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+step = 0.0
+
+[node name="TrackStrip" type="Control" parent="Split/Main" unique_id=1516112206]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+script = ExtResource("2")
+
+[node name="Sidebar" type="PanelContainer" parent="Split" unique_id=1422857643]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Split/Sidebar" unique_id=757139300]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Split/Sidebar/Scroll" unique_id=1312454365]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Form" type="VBoxContainer" parent="Split/Sidebar/Scroll/Margin" unique_id=671490067]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SessionTitle" type="Label" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=575529927]
+layout_mode = 2
+text = "SESSION"
+
+[node name="DataRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1381501536]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/DataRow" unique_id=1467114409]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Data"
+
+[node name="DataPath" type="LineEdit" parent="Split/Sidebar/Scroll/Margin/Form/DataRow" unique_id=1152942045]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "recording .jsonl"
+editable = false
+
+[node name="DataButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/DataRow" unique_id=2058402733]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+
+[node name="AudioRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=175553377]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/AudioRow" unique_id=209889592]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Audio"
+
+[node name="AudioPath" type="LineEdit" parent="Split/Sidebar/Scroll/Margin/Form/AudioRow" unique_id=1678671859]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "recording .wav (auto)"
+editable = false
+
+[node name="AudioButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/AudioRow" unique_id=1945081798]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+
+[node name="SessionInfo" type="Label" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=9701522]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No recording loaded"
+autowrap_mode = 3
+
+[node name="StyleSeparator" type="HSeparator" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=668598994]
+layout_mode = 2
+
+[node name="StyleTitle" type="Label" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1416844389]
+layout_mode = 2
+text = "STYLE"
+
+[node name="BackgroundRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=261894007]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/BackgroundRow" unique_id=1712549267]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Background"
+
+[node name="BackgroundPath" type="LineEdit" parent="Split/Sidebar/Scroll/Margin/Form/BackgroundRow" unique_id=420054151]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "none (black)"
+editable = false
+
+[node name="BackgroundButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/BackgroundRow" unique_id=2057998979]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+
+[node name="FontRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=388297880]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/FontRow" unique_id=768388345]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Font"
+
+[node name="FontOptionButton" type="OptionButton" parent="Split/Sidebar/Scroll/Margin/Form/FontRow" unique_id=1227268190]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ColorsRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=347339459]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/ColorsRow" unique_id=485729840]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Colors"
+
+[node name="LowColorPicker" type="ColorPickerButton" parent="Split/Sidebar/Scroll/Margin/Form/ColorsRow" unique_id=2052836336]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Low band"
+edit_alpha = false
+
+[node name="MidColorPicker" type="ColorPickerButton" parent="Split/Sidebar/Scroll/Margin/Form/ColorsRow" unique_id=1223880641]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Mid band"
+edit_alpha = false
+
+[node name="HighColorPicker" type="ColorPickerButton" parent="Split/Sidebar/Scroll/Margin/Form/ColorsRow" unique_id=1189883888]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "High band"
+edit_alpha = false
+
+[node name="AccentColorPicker" type="ColorPickerButton" parent="Split/Sidebar/Scroll/Margin/Form/ColorsRow" unique_id=534595751]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Text & playhead"
+edit_alpha = false
+
+[node name="ShaderToggles" type="VBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1644252211]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="OutputSeparator" type="HSeparator" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1850285034]
+layout_mode = 2
+
+[node name="OutputTitle" type="Label" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1190725728]
+layout_mode = 2
+text = "OUTPUT"
+
+[node name="OutputRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=611643067]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/OutputRow" unique_id=901218141]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "File"
+
+[node name="OutputPath" type="LineEdit" parent="Split/Sidebar/Scroll/Margin/Form/OutputRow" unique_id=309819203]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "output .mp4"
+
+[node name="OutputButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/OutputRow" unique_id=1930090621]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+
+[node name="ResolutionRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=2125745448]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/ResolutionRow" unique_id=346653669]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Video"
+
+[node name="ResolutionOption" type="OptionButton" parent="Split/Sidebar/Scroll/Margin/Form/ResolutionRow" unique_id=1631662474]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FpsOption" type="OptionButton" parent="Split/Sidebar/Scroll/Margin/Form/ResolutionRow" unique_id=279166674]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EncoderRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1448912668]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/EncoderRow" unique_id=1972976080]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Encoder"
+
+[node name="EncoderOption" type="OptionButton" parent="Split/Sidebar/Scroll/Margin/Form/EncoderRow" unique_id=1584550926]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QualitySpin" type="SpinBox" parent="Split/Sidebar/Scroll/Margin/Form/EncoderRow" unique_id=767654323]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "CRF (x264) / CQ (NVENC): lower = better quality, bigger file. 14-20 is a good range."
+max_value = 51.0
+value = 16.0
+prefix = "Q"
+
+[node name="RangeRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=155999083]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/RangeRow" unique_id=1603241114]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Range (s)"
+
+[node name="RangeStartSpin" type="SpinBox" parent="Split/Sidebar/Scroll/Margin/Form/RangeRow" unique_id=1260461118]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Start time in seconds"
+max_value = 100000.0
+step = 0.01
+
+[node name="RangeEndSpin" type="SpinBox" parent="Split/Sidebar/Scroll/Margin/Form/RangeRow" unique_id=880951455]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "End time in seconds, 0 = end of the audio"
+max_value = 100000.0
+step = 0.01
+
+[node name="RangeButtonsRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=572306589]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Split/Sidebar/Scroll/Margin/Form/RangeButtonsRow" unique_id=1544885375]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+
+[node name="SetInButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/RangeButtonsRow" unique_id=255724729]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "In = playhead"
+
+[node name="SetOutButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/RangeButtonsRow" unique_id=802408749]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Out = playhead"
+
+[node name="FullRangeButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/RangeButtonsRow" unique_id=2094993951]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Full"
+
+[node name="FfmpegRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=631930988]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/FfmpegRow" unique_id=1884510815]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "ffmpeg"
+
+[node name="FfmpegPath" type="LineEdit" parent="Split/Sidebar/Scroll/Margin/Form/FfmpegRow" unique_id=1131809116]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FfmpegButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/FfmpegRow" unique_id=563086497]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+
+[node name="FfmpegStatus" type="Label" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1865365865]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="GenerateSeparator" type="HSeparator" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=2093009481]
+layout_mode = 2
+
+[node name="GenerateRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=637483865]
+layout_mode = 2
+
+[node name="GenerateButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/GenerateRow" unique_id=1011710817]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "GENERATE"
+
+[node name="CancelButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/GenerateRow" unique_id=1420226646]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+disabled = true
+text = "Cancel"
+
+[node name="RenderProgress" type="ProgressBar" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1425160770]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 1.0
+
+[node name="RenderStatus" type="Label" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1941870313]
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="DataDialog" type="FileDialog" parent="." unique_id=1650846027]
+unique_name_in_owner = true
+title = "Open a File"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.jsonl ; Mixxx recording data")
+use_native_dialog = true
+
+[node name="AudioDialog" type="FileDialog" parent="." unique_id=900986222]
+unique_name_in_owner = true
+title = "Open a File"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.wav ; WAV audio")
+use_native_dialog = true
+
+[node name="BackgroundDialog" type="FileDialog" parent="." unique_id=319797755]
+unique_name_in_owner = true
+title = "Open a File"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp, *.bmp ; Image Files")
+use_native_dialog = true
+
+[node name="OutputDialog" type="FileDialog" parent="." unique_id=292813668]
+unique_name_in_owner = true
+title = "Save video as"
+access = 2
+filters = PackedStringArray("*.mp4 ; MP4 video", "*.mkv ; Matroska video")
+use_native_dialog = true
+
+[node name="FfmpegDialog" type="FileDialog" parent="." unique_id=75139263]
+unique_name_in_owner = true
+title = "Open a File"
+file_mode = 0
+access = 2
+filters = PackedStringArray("ffmpeg.exe ; ffmpeg")
+use_native_dialog = true
