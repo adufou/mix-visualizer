@@ -122,7 +122,10 @@ static func encoder_args(encoder: String, quality: int) -> PackedStringArray:
 		"libx265":
 			args.append_array(["-preset", "medium", "-crf", q])
 		"h264_nvenc", "hevc_nvenc", "av1_nvenc":
-			args.append_array(["-preset", "p7", "-tune", "hq", "-rc", "vbr", "-cq", q, "-b:v", "0"])
+			# Without an explicit maxrate, NVENC caps VBR at a low default
+			# (~15-40 Mbit/s) whatever -cq says, and smears fine detail like grain.
+			args.append_array(["-preset", "p7", "-tune", "hq", "-rc", "vbr", "-cq", q, "-b:v", "0",
+					"-maxrate", "800M", "-bufsize", "1600M"])
 		"h264_qsv", "hevc_qsv", "av1_qsv":
 			args.append_array(["-preset", "veryslow", "-global_quality", q])
 		"h264_amf", "hevc_amf", "av1_amf":
