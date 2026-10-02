@@ -386,23 +386,25 @@ func _on_ffmpeg_path_changed(path: String) -> void:
 	_probe_ffmpeg()
 
 
-## Lists the video encoders the chosen ffmpeg actually has. Some apps ship an
-## audio-only ffmpeg that can't write video at all.
+## Lists the video encoders the chosen ffmpeg actually has. If it can't
+## encode H.264 (empty field, file gone after an update, audio-only build),
+## looks for one that can and keeps it in the settings.
 func _probe_ffmpeg() -> void:
-	_ffmpeg_encoders = []
-	var output: Array = []
-	var exit_code := OS.execute(_job["output"]["ffmpeg"], ["-hide_banner", "-encoders"], output, true)
-	if exit_code == 0 and not output.is_empty():
-		for encoder in RenderJob.ENCODERS:
-			if (" %s " % encoder) in str(output[0]):
-				_ffmpeg_encoders.append(encoder)
+	_ffmpeg_encoders = FfmpegLocator.video_encoders(_job["output"]["ffmpeg"])
+	if not _ffmpeg_encoders.has("libx264"):
+		var found := FfmpegLocator.find()
+		if not found.is_empty():
+			_job["output"]["ffmpeg"] = found
+			ffmpeg_path_edit.text = found
+			_save()
+			_ffmpeg_encoders = FfmpegLocator.video_encoders(found)
 	_update_ffmpeg_status()
 
 
 func _update_ffmpeg_status() -> void:
 	var encoder: String = _job["output"]["encoder"]
 	if _ffmpeg_encoders.is_empty():
-		ffmpeg_status.text = "This ffmpeg can't encode video (missing or audio-only build). Point to a full build, e.g. from gyan.dev or BtbN."
+		ffmpeg_status.text = "No ffmpeg that can encode video was found. Install one (winget install Gyan.FFmpeg) or point to ffmpeg.exe."
 	elif not _ffmpeg_encoders.has(encoder):
 		ffmpeg_status.text = "This ffmpeg has no %s. Available: %s" % [encoder, ", ".join(_ffmpeg_encoders)]
 	else:

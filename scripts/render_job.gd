@@ -37,7 +37,7 @@ static func defaults() -> Dictionary:
 			"range_start": 0.0,
 			## 0 = until the end of the audio.
 			"range_end": 0.0,
-			"ffmpeg": "ffmpeg",
+			"ffmpeg": "",
 		},
 	}
 

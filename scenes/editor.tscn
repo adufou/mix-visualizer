@@ -349,6 +349,7 @@ text = "ffmpeg"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+placeholder_text = "auto-detect"
 
 [node name="FfmpegButton" type="Button" parent="Split/Sidebar/Scroll/Margin/Form/FfmpegRow" unique_id=563086497]
 unique_name_in_owner = true
