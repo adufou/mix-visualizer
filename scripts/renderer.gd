@@ -10,7 +10,8 @@ extends Control
 ##
 ## Extra user args: --profile (print per-stage timings), --sync-readback
 ## (old blocking get_image path). Output path "<x>.framemd5" writes per-frame
-## checksums instead of a video, "null" discards frames (speed tests).
+## checksums instead of a video, "<x>.lossless.mkv" writes exact pixels (FFV1)
+## for before/after comparisons, "null" discards frames (speed tests).
 
 ## Frames rendered (but not written) before range_start, so the overlay's
 ## delta-based smoothing and beat-pulse state settle as in normal playback.
@@ -125,6 +126,8 @@ func _ffmpeg_args(size: Vector2i, audio_path: String, duration: float) -> Packed
 		return video_input + PackedStringArray(["-f", "framemd5", out_path])
 	if out_path == "null":
 		return video_input + PackedStringArray(["-f", "null", "-"])
+	if out_path.ends_with(".lossless.mkv"):
+		return video_input + PackedStringArray(["-c:v", "ffv1", out_path])
 
 	var args := video_input.duplicate()
 	if not audio_path.is_empty():
