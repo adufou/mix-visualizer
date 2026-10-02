@@ -478,7 +478,8 @@ func _on_generate_pressed() -> void:
 	var args := PackedStringArray()
 	if OS.has_feature("editor"):
 		args.append_array(["--path", ProjectSettings.globalize_path("res://")])
-	args.append_array(["--fixed-fps", str(int(job["output"]["fps"])), "--resolution", "960x540",
+	# No vsync: frames are offline, so the screen refresh mustn't cap the render.
+	args.append_array(["--fixed-fps", str(int(job["output"]["fps"])), "--disable-vsync", "--resolution", "960x540",
 			"--", "--render", job_path])
 	_render_pid = OS.create_process(OS.get_executable_path(), args)
 	if _render_pid <= 0:

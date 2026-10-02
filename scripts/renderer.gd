@@ -6,7 +6,11 @@ extends Control
 ## overlay draws into a SubViewport -> its pixels are piped into ffmpeg, which
 ## muxes them with the recorded audio straight into the output file.
 ##
-##   godot --path <project> --fixed-fps 60 -- --render <job.json>
+##   godot --path <project> --fixed-fps 60 --disable-vsync -- --render <job.json>
+##
+## Extra user args: --profile (print per-stage timings), --sync-readback
+## (old blocking get_image path). Output path "<x>.framemd5" writes per-frame
+## checksums instead of a video, "null" discards frames (speed tests).
 
 ## Frames rendered (but not written) before range_start, so the overlay's
 ## delta-based smoothing and beat-pulse state settle as in normal playback.
@@ -28,11 +32,25 @@ var _total_frames := 0
 ## Frame being processed; frames < _warmup_frames are not written.
 var _frame := 0
 var _frame_pending := false
+## Output frames whose pixels were requested from the GPU / written to ffmpeg.
+var _requested := 0
+var _written := 0
+## Frames read back but not written yet (written strictly in index order).
+var _readback_done: Dictionary = {}
+## Async readback: the GPU copies each frame out while the next ones are
+## drawn, instead of the CPU waiting on every frame (get_image). Null when the
+## renderer has no RenderingDevice (Compatibility) or with --sync-readback.
+var _rd: RenderingDevice
 var _ffmpeg: Dictionary = {}
 var _started_msec := 0
 var _status_path := ""
 var _cancel_path := ""
 var _finished := false
+
+## --profile: microseconds spent per stage, summed over written frames.
+var _profile := false
+var _profile_us := {"frame": 0, "readback": 0, "store_buffer": 0}
+var _profile_last_us := 0
 
 
 func _ready() -> void:
@@ -40,6 +58,9 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var job_path := args[args.find("--render") + 1]
 	_job = RenderJob.read(job_path)
+	_profile = args.has("--profile")
+	if not args.has("--sync-readback"):
+		_rd = RenderingServer.get_rendering_device()
 	_status_path = _job.get("render", {}).get("status_path", "")
 	_cancel_path = _job.get("render", {}).get("cancel_path", "")
 	var error := _prepare()
@@ -76,7 +97,8 @@ func _prepare() -> String:
 	if float(output["range_end"]) > 0.0:
 		end = min(end, float(output["range_end"]))
 	_range_start = clamp(float(output["range_start"]), 0.0, end)
-	_total_frames = int(ceil((end - _range_start) * _fps))
+	# Epsilon: 30.05 - 30.0 is 0.0500000000000007, which would round up one frame too many.
+	_total_frames = int(ceil((end - _range_start) * _fps - 1e-6))
 	_warmup_frames = int(WARMUP_SECONDS * _fps)
 	if _total_frames <= 0:
 		return "Empty range: %.2fs to %.2fs" % [_range_start, end]
@@ -91,21 +113,31 @@ func _prepare() -> String:
 
 func _ffmpeg_args(size: Vector2i, audio_path: String, duration: float) -> PackedStringArray:
 	var output: Dictionary = _job["output"]
-	var args := PackedStringArray([
+	var video_input := PackedStringArray([
 		"-y", "-loglevel", "error", "-nostats",
 		"-f", "rawvideo", "-pix_fmt", "rgba", "-s", "%dx%d" % [size.x, size.y],
 		"-r", str(_fps), "-i", "-",
 	])
+	var out_path := str(output["path"])
+	# Test outputs: per-frame checksums of the exact pixels sent (regression
+	# check for frame order/timing), or a discard sink (speed measurements).
+	if out_path.ends_with(".framemd5"):
+		return video_input + PackedStringArray(["-f", "framemd5", out_path])
+	if out_path == "null":
+		return video_input + PackedStringArray(["-f", "null", "-"])
+
+	var args := video_input.duplicate()
 	if not audio_path.is_empty():
 		args.append_array(["-ss", "%.6f" % _range_start, "-t", "%.6f" % duration, "-i", audio_path,
 				"-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "320k", "-shortest"])
 	args.append_array(RenderJob.encoder_args(str(output["encoder"]), int(output["quality"])))
-	args.append_array(["-movflags", "+faststart", output["path"]])
+	args.append_array(["-movflags", "+faststart", out_path])
 	return args
 
 
 func _process(delta: float) -> void:
-	if _finished or _total_frames <= 0:
+	# Once every frame is requested, only wait for the last readbacks.
+	if _finished or _total_frames <= 0 or _requested >= _total_frames:
 		return
 	if _frame == 1 and abs(delta - 1.0 / _fps) > 1e-6:
 		push_warning("Renderer: delta is %f, not 1/%d. Start with --fixed-fps %d for frame-exact smoothing." % [delta, _fps, _fps])
@@ -117,26 +149,60 @@ func _on_frame_post_draw() -> void:
 	if _finished or not _frame_pending:
 		return
 	_frame_pending = false
-	var written := _frame - _warmup_frames
-	if written >= 0:
+	var index := _frame - _warmup_frames
+	_frame += 1
+	if index < 0:
+		return
+	_requested = index + 1
+	var t0 := Time.get_ticks_usec()
+	if _rd != null:
+		var texture := RenderingServer.texture_get_rd_texture(sub_viewport.get_texture().get_rid())
+		var error := _rd.texture_get_data_async(texture, 0, _on_frame_read.bind(index))
+		if error != OK:
+			_fail("GPU readback failed for frame %d: %s" % [index, error_string(error)])
+			return
+		_profile_us["readback"] += Time.get_ticks_usec() - t0
+	else:
 		var image := sub_viewport.get_texture().get_image()
 		if image.get_format() != Image.FORMAT_RGBA8:
 			image.convert(Image.FORMAT_RGBA8)
-		var stdio: FileAccess = _ffmpeg["stdio"]
-		# Blocking pipe: when ffmpeg encodes slower than we draw, this waits.
-		if not stdio.store_buffer(image.get_data()) or not OS.is_process_running(_ffmpeg["pid"]):
-			_fail("ffmpeg stopped while writing frame %d: %s" % [written, _read_ffmpeg_errors()])
+		_profile_us["readback"] += Time.get_ticks_usec() - t0
+		_on_frame_read(image.get_data(), index)
+
+
+## Readbacks can complete a frame or two after their request. Writes go out
+## strictly in frame order, whatever order the data arrives in.
+func _on_frame_read(data: PackedByteArray, index: int) -> void:
+	if _finished:
+		return
+	_readback_done[index] = data
+	while _readback_done.has(_written):
+		var frame_data: PackedByteArray = _readback_done[_written]
+		_readback_done.erase(_written)
+		var size := sub_viewport.size
+		if frame_data.size() != size.x * size.y * 4:
+			_fail("Frame %d has %d bytes, expected %d (RGBA8 %dx%d)" % [_written, frame_data.size(), size.x * size.y * 4, size.x, size.y])
 			return
-		written += 1
-		if written % STATUS_EVERY_FRAMES == 0:
+		var t0 := Time.get_ticks_usec()
+		# Blocking pipe: when ffmpeg encodes slower than we draw, this waits.
+		var stored: bool = _ffmpeg["stdio"].store_buffer(frame_data)
+		var t1 := Time.get_ticks_usec()
+		_profile_us["store_buffer"] += t1 - t0
+		if _profile_last_us > 0:
+			_profile_us["frame"] += t1 - _profile_last_us
+		_profile_last_us = t1
+		if not stored or not OS.is_process_running(_ffmpeg["pid"]):
+			_fail("ffmpeg stopped while writing frame %d: %s" % [_written, _read_ffmpeg_errors()])
+			return
+		_written += 1
+		if _written % STATUS_EVERY_FRAMES == 0:
 			_write_status("rendering")
 			if not _cancel_path.is_empty() and FileAccess.file_exists(_cancel_path):
 				_finish("cancelled")
 				return
-		if written >= _total_frames:
+		if _written >= _total_frames:
 			_finish("done")
 			return
-	_frame += 1
 
 
 ## Closes ffmpeg's input so it finalizes the file, waits for it, then quits.
@@ -151,7 +217,13 @@ func _finish(state: String) -> void:
 		_fail("ffmpeg exited with code %d: %s" % [exit_code, _read_ffmpeg_errors()])
 		return
 	_write_status(state, _job["output"]["path"])
-	print("Renderer: %s, %d frames in %.1fs" % [state, _frame - _warmup_frames + 1, (Time.get_ticks_msec() - _started_msec) / 1000.0])
+	if _profile:
+		var frames: int = max(1, _written)
+		var parts: PackedStringArray = []
+		for stage in _profile_us.keys():
+			parts.append("%s %.2f ms" % [stage, _profile_us[stage] / 1000.0 / frames])
+		print("Renderer profile (avg per frame): " + ", ".join(parts))
+	print("Renderer: %s, %d frames in %.1fs (%s readback)" % [state, _written, (Time.get_ticks_msec() - _started_msec) / 1000.0, "sync" if _rd == null else "async"])
 	get_tree().quit(0)
 
 
@@ -173,7 +245,7 @@ func _read_ffmpeg_errors() -> String:
 
 ## Status file polled by the editor: { state, frame, total, fps, message }.
 func _write_status(state: String, message := "") -> void:
-	var written: int = max(0, _frame - _warmup_frames + 1)
+	var written := _written
 	var elapsed: float = max(0.001, (Time.get_ticks_msec() - _started_msec) / 1000.0)
 	var render_fps := written / elapsed if _started_msec > 0 else 0.0
 	status_label.text = "%s  %d / %d  (%.1f fps)  %s" % [state, written, _total_frames, render_fps, message]
