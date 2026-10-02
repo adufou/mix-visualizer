@@ -54,6 +54,9 @@ static func defaults() -> Dictionary:
 			"range_start": 0.0,
 			## 0 = until the end of the audio.
 			"range_end": 0.0,
+			## Audio delay against the visuals, in frames at `fps`. Positive =
+			## audio later. Shifts the data, so range and audio stay in audio time.
+			"audio_offset_frames": 0,
 			"ffmpeg": "",
 		},
 	}

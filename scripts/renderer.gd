@@ -2,7 +2,7 @@ extends Control
 ## Offline renderer, run in its own Godot process (started by the editor's
 ## Generate button) with `--fixed-fps <fps>` so every frame advances `delta`
 ## and shader TIME by exactly 1/fps, however long it takes to draw.
-## Each frame: t = range_start + frame_index / fps -> MixData.seek(t) -> the
+## Each frame: t = range_start + (frame_index - audio_offset_frames) / fps -> MixData.seek(t) -> the
 ## overlay draws into a SubViewport -> its pixels are piped into ffmpeg, which
 ## muxes them with the recorded audio straight into the output file.
 ##
@@ -28,6 +28,8 @@ var _job: Dictionary
 var _overlay: Overlay
 var _fps := 60
 var _range_start := 0.0
+## Audio delay in frames (see RenderJob): frame i shows the data of frame i - this.
+var _audio_offset_frames := 0
 var _warmup_frames := 0
 var _total_frames := 0
 ## Frame being processed; frames < _warmup_frames are not written.
@@ -76,6 +78,7 @@ func _prepare() -> String:
 	_write_status("loading", "Loading data...")
 	var output: Dictionary = _job["output"]
 	_fps = int(output["fps"])
+	_audio_offset_frames = int(output["audio_offset_frames"])
 	var size := RenderJob.output_size(_job)
 	sub_viewport.size = size
 	sub_viewport.size_2d_override = DESIGN_SIZE
@@ -144,7 +147,7 @@ func _process(delta: float) -> void:
 		return
 	if _frame == 1 and abs(delta - 1.0 / _fps) > 1e-6:
 		push_warning("Renderer: delta is %f, not 1/%d. Start with --fixed-fps %d for frame-exact smoothing." % [delta, _fps, _fps])
-	MixData.seek(_range_start + float(_frame - _warmup_frames) / _fps)
+	MixData.seek(_range_start + float(_frame - _warmup_frames - _audio_offset_frames) / _fps)
 	_frame_pending = true
 
 

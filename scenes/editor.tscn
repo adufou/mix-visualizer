@@ -337,6 +337,31 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Full"
 
+[node name="AudioOffsetRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=1873406215]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/AudioOffsetRow" unique_id=409561372]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Audio delay"
+
+[node name="AudioOffsetSpin" type="SpinBox" parent="Split/Sidebar/Scroll/Margin/Form/AudioOffsetRow" unique_id=1395027781]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Shifts the audio against the visuals, in frames at the output fps. Positive = audio later, negative = audio earlier. Applies to the preview and the video."
+min_value = -600.0
+max_value = 600.0
+allow_greater = true
+allow_lesser = true
+suffix = "frames"
+
+[node name="AudioOffsetMs" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/AudioOffsetRow" unique_id=1028847713]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+horizontal_alignment = 2
+
 [node name="FfmpegRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=631930988]
 layout_mode = 2
 

@@ -34,6 +34,8 @@ const SKIP_SECONDS := 5.0
 @onready var quality_spin: SpinBox = %QualitySpin
 @onready var range_start_spin: SpinBox = %RangeStartSpin
 @onready var range_end_spin: SpinBox = %RangeEndSpin
+@onready var audio_offset_spin: SpinBox = %AudioOffsetSpin
+@onready var audio_offset_ms: Label = %AudioOffsetMs
 @onready var ffmpeg_path_edit: LineEdit = %FfmpegPath
 @onready var ffmpeg_status: Label = %FfmpegStatus
 @onready var generate_button: Button = %GenerateButton
@@ -198,7 +200,7 @@ func _process(delta: float) -> void:
 		if _time >= _duration:
 			_time = _duration
 			_set_playing(false)
-	MixData.seek(_time)
+	MixData.seek(_time - _audio_offset_seconds())
 	timeline.set_value_no_signal(_time)
 	time_label.text = "%s / %s" % [_format_time(_time, true), _format_time(_duration)]
 
@@ -338,6 +340,7 @@ func _init_output_controls() -> void:
 	fps_option.select(max(0, FPS_CHOICES.find(int(output["fps"]))))
 	fps_option.item_selected.connect(func(index):
 		output["fps"] = FPS_CHOICES[index]
+		_update_audio_offset_label()
 		_save())
 
 	# Filled once the background probe knows which encoders work here.
@@ -362,6 +365,13 @@ func _init_output_controls() -> void:
 		range_start_spin.value = 0.0
 		range_end_spin.value = 0.0)
 
+	audio_offset_spin.value = float(output["audio_offset_frames"])
+	audio_offset_spin.value_changed.connect(func(value):
+		output["audio_offset_frames"] = int(value)
+		_update_audio_offset_label()
+		_save())
+	_update_audio_offset_label()
+
 	ffmpeg_path_edit.text = output["ffmpeg"]
 	ffmpeg_path_edit.text_submitted.connect(_on_ffmpeg_path_changed)
 	ffmpeg_path_edit.focus_exited.connect(func(): _on_ffmpeg_path_changed(ffmpeg_path_edit.text))
@@ -373,6 +383,16 @@ func _init_output_controls() -> void:
 
 	generate_button.pressed.connect(_on_generate_pressed)
 	cancel_button.pressed.connect(_on_cancel_pressed)
+
+
+## The audio is the clock (playback, timeline, range); the offset moves the
+## data under it, like the renderer does.
+func _audio_offset_seconds() -> float:
+	return float(_job["output"]["audio_offset_frames"]) / float(_job["output"]["fps"])
+
+
+func _update_audio_offset_label() -> void:
+	audio_offset_ms.text = "%+d ms" % roundi(_audio_offset_seconds() * 1000.0)
 
 
 func _apply_range_to_controls() -> void:
