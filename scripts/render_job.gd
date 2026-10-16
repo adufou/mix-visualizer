@@ -56,9 +56,9 @@ static func defaults() -> Dictionary:
 			"range_start": 0.0,
 			## 0 = until the end of the audio.
 			"range_end": 0.0,
-			## Audio delay against the visuals, in frames at `fps`. Positive =
+			## Audio delay against the visuals, in milliseconds. Positive =
 			## audio later. Shifts the data, so range and audio stay in audio time.
-			"audio_offset_frames": 0,
+			"audio_offset_ms": 0,
 			"ffmpeg": "",
 		},
 	}
@@ -72,6 +72,7 @@ static func load_saved() -> Dictionary:
 		var saved = JSON.parse_string(file.get_as_text())
 		if saved is Dictionary:
 			_merge(job, saved)
+	_migrate(job)
 	return job
 
 
@@ -88,6 +89,7 @@ static func read(path: String) -> Dictionary:
 	var saved = JSON.parse_string(file.get_as_text())
 	if saved is Dictionary:
 		_merge(job, saved)
+	_migrate(job)
 	return job
 
 
@@ -146,6 +148,14 @@ static func encoder_args(encoder: String, quality: int) -> PackedStringArray:
 static func output_size(job: Dictionary) -> Vector2i:
 	var height := int(job["output"]["height"])
 	return Vector2i(height * 16 / 9, height)
+
+
+## Converts settings saved by older versions.
+static func _migrate(job: Dictionary) -> void:
+	var output: Dictionary = job["output"]
+	if output.has("audio_offset_frames"):
+		output["audio_offset_ms"] = roundi(float(output["audio_offset_frames"]) * 1000.0 / float(output["fps"]))
+		output.erase("audio_offset_frames")
 
 
 static func _merge(into: Dictionary, from: Dictionary) -> void:

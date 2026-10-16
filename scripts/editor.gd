@@ -36,7 +36,7 @@ const SKIP_SECONDS := 5.0
 @onready var range_start_spin: SpinBox = %RangeStartSpin
 @onready var range_end_spin: SpinBox = %RangeEndSpin
 @onready var audio_offset_spin: SpinBox = %AudioOffsetSpin
-@onready var audio_offset_ms: Label = %AudioOffsetMs
+@onready var audio_offset_frames: Label = %AudioOffsetFrames
 @onready var ffmpeg_path_edit: LineEdit = %FfmpegPath
 @onready var ffmpeg_status: Label = %FfmpegStatus
 @onready var generate_button: Button = %GenerateButton
@@ -375,9 +375,9 @@ func _init_output_controls() -> void:
 		range_start_spin.value = 0.0
 		range_end_spin.value = 0.0)
 
-	audio_offset_spin.value = float(output["audio_offset_frames"])
+	audio_offset_spin.value = float(output["audio_offset_ms"])
 	audio_offset_spin.value_changed.connect(func(value):
-		output["audio_offset_frames"] = int(value)
+		output["audio_offset_ms"] = int(value)
 		_update_audio_offset_label()
 		_save())
 	_update_audio_offset_label()
@@ -398,11 +398,12 @@ func _init_output_controls() -> void:
 ## The audio is the clock (playback, timeline, range); the offset moves the
 ## data under it, like the renderer does.
 func _audio_offset_seconds() -> float:
-	return float(_job["output"]["audio_offset_frames"]) / float(_job["output"]["fps"])
+	return float(_job["output"]["audio_offset_ms"]) / 1000.0
 
 
 func _update_audio_offset_label() -> void:
-	audio_offset_ms.text = "%+d ms" % roundi(_audio_offset_seconds() * 1000.0)
+	var frames := _audio_offset_seconds() * float(_job["output"]["fps"])
+	audio_offset_frames.text = "%+.1f fr" % frames
 
 
 func _apply_range_to_controls() -> void:

@@ -363,14 +363,14 @@ text = "Audio delay"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-tooltip_text = "Shifts the audio against the visuals, in frames at the output fps. Positive = audio later, negative = audio earlier. Applies to the preview and the video."
-min_value = -600.0
-max_value = 600.0
+tooltip_text = "Shifts the audio against the visuals, in milliseconds. Positive = audio later, negative = audio earlier. Applies to the preview and the video."
+min_value = -10000.0
+max_value = 10000.0
 allow_greater = true
 allow_lesser = true
-suffix = "frames"
+suffix = "ms"
 
-[node name="AudioOffsetMs" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/AudioOffsetRow" unique_id=1028847713]
+[node name="AudioOffsetFrames" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/AudioOffsetRow" unique_id=1028847713]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
