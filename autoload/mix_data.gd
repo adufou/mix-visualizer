@@ -121,18 +121,22 @@ func _apply_levels(t: float) -> void:
 		var a := i * deck_n + d
 		var b := j * deck_n + d
 		var k: int = rec.kills[a]
+		# Sample b may already belong to the next track (its gain, EQ, bpm):
+		# hold sample a's values until that load instead of blending the old
+		# waveform toward them.
+		var dw := 0.0 if _track_loaded_between(deck_id, rec.ts[i], rec.ts[j]) else w
 		latest_levels[deck_id] = {
-			"pos": _interp_pos(rec.pos[a], rec.pos[b], w, deck_id),
-			"volume": lerp(rec.volume[a], rec.volume[b], w),
-			"total_gain": lerp(rec.total_gain[a], rec.total_gain[b], w),
-			"eq_low": lerp(rec.eq_low[a], rec.eq_low[b], w),
-			"eq_mid": lerp(rec.eq_mid[a], rec.eq_mid[b], w),
-			"eq_high": lerp(rec.eq_high[a], rec.eq_high[b], w),
+			"pos": _interp_pos(rec.pos[a], rec.pos[b], dw, deck_id),
+			"volume": lerp(rec.volume[a], rec.volume[b], dw),
+			"total_gain": lerp(rec.total_gain[a], rec.total_gain[b], dw),
+			"eq_low": lerp(rec.eq_low[a], rec.eq_low[b], dw),
+			"eq_mid": lerp(rec.eq_mid[a], rec.eq_mid[b], dw),
+			"eq_high": lerp(rec.eq_high[a], rec.eq_high[b], dw),
 			"kill_low": (k & 1) != 0,
 			"kill_mid": (k & 2) != 0,
 			"kill_high": (k & 4) != 0,
-			"bpm": lerp(rec.bpm[a], rec.bpm[b], w),
-			"beat_distance": _interp_beat(rec.beat_distance[a], rec.beat_distance[b], w),
+			"bpm": lerp(rec.bpm[a], rec.bpm[b], dw),
+			"beat_distance": _interp_beat(rec.beat_distance[a], rec.beat_distance[b], dw),
 		}
 
 	master["low"] = lerp(rec.master_low[i], rec.master_low[j], w)
@@ -152,6 +156,16 @@ func _interp_pos(p0: float, p1: float, w: float, deck_id: String) -> float:
 	if abs(p1 - p0) * duration > POS_DISCONTINUITY_SECONDS:
 		return p0
 	return lerp(p0, p1, w)
+
+
+## True if `deck_id` got a track_loaded in (t0, t1].
+func _track_loaded_between(deck_id: String, t0: float, t1: float) -> bool:
+	for event in recording.track_events:
+		if event["t"] > t1:
+			break
+		if event["t"] > t0 and event["deck"] == deck_id:
+			return true
+	return false
 
 
 ## Crossing a beat wraps ~1 -> ~0: interpolate through 1 and wrap back.
