@@ -294,7 +294,8 @@ func _on_background_selected(path: String) -> void:
 
 
 ## One master "All shaders" switch plus one per effect in background_fx.gd's
-## EFFECTS. Per-effect switches grey out while the master is off.
+## EFFECTS, each followed by sliders for its EFFECT_PARAMS. Per-effect
+## controls grey out while the master is off.
 func _build_shader_toggles() -> void:
 	var background := _overlay.background
 	var style: Dictionary = _job["style"]
@@ -304,6 +305,7 @@ func _build_shader_toggles() -> void:
 	shader_toggles.add_child(all_toggle)
 
 	var effect_toggles: Array[CheckButton] = []
+	var param_rows: Array[Control] = []
 	for effect in background.EFFECTS.keys():
 		var toggle := CheckButton.new()
 		toggle.text = effect
@@ -315,13 +317,99 @@ func _build_shader_toggles() -> void:
 			_save())
 		shader_toggles.add_child(toggle)
 		effect_toggles.append(toggle)
+		for param in background.EFFECT_PARAMS.get(effect, []):
+			var row := _build_param_row(param)
+			shader_toggles.add_child(row)
+			param_rows.append(row)
+
+	var set_rows_enabled := func(on: bool):
+		for row in param_rows:
+			row.modulate.a = 1.0 if on else 0.4
+			row.propagate_call("set_editable", [on])
+			row.propagate_call("set_disabled", [not on])
+	var reset_all := Button.new()
+	reset_all.text = "Reset shader settings"
+	reset_all.tooltip_text = "Put every shader slider back to its default"
+	reset_all.pressed.connect(func():
+		for row in param_rows:
+			# Last child of each row is its own reset button.
+			(row.get_child(-1) as Button).pressed.emit())
+	reset_all.disabled = not all_toggle.button_pressed
+	shader_toggles.add_child(reset_all)
+	set_rows_enabled.call(all_toggle.button_pressed)
 
 	all_toggle.toggled.connect(func(on):
 		background.set_all_enabled(on)
 		style["shaders_enabled"] = on
 		for toggle in effect_toggles:
 			toggle.disabled = not on
+		set_rows_enabled.call(on)
+		reset_all.disabled = not on
 		_save())
+
+
+## Label, control and reset button for one shader uniform: a slider for
+## floats (range from the uniform's hint_range), a picker for colors.
+func _build_param_row(param: String) -> Control:
+	var background := _overlay.background
+	var params: Dictionary = _job["style"]["shader_params"]
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = "    " + param.capitalize()
+	label.custom_minimum_size.x = 120
+	row.add_child(label)
+
+	var reset := Button.new()
+	reset.text = "↺"
+	reset.tooltip_text = "Reset to default"
+	reset.flat = true
+
+	var default = background.get_param_default(param)
+	if default is Color:
+		var picker := ColorPickerButton.new()
+		picker.color = background.get_param(param)
+		picker.edit_alpha = false
+		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		picker.custom_minimum_size.y = 24
+		picker.color_changed.connect(func(color):
+			background.set_param(param, color)
+			params[param] = color.to_html(false))
+		picker.popup_closed.connect(_save)
+		row.add_child(picker)
+		reset.pressed.connect(func():
+			picker.color = default
+			background.set_param(param, default)
+			params.erase(param)
+			_save())
+	else:
+		var spin := SpinBox.new()
+		var hint := String(background.get_param_info(param).get("hint_string", "0,1,0.01")).split(",")
+		spin.min_value = float(hint[0])
+		spin.max_value = float(hint[1])
+		spin.step = float(hint[2]) if hint.size() > 2 else 0.01
+		spin.custom_arrow_step = spin.step
+		var slider := HSlider.new()
+		slider.min_value = spin.min_value
+		slider.max_value = spin.max_value
+		slider.step = spin.step
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		slider.value = float(background.get_param(param))
+		spin.value = slider.value
+		slider.value_changed.connect(func(value):
+			spin.set_value_no_signal(value)
+			background.set_param(param, value)
+			params[param] = value
+			_save())
+		spin.value_changed.connect(func(value): slider.value = value)
+		row.add_child(slider)
+		row.add_child(spin)
+		reset.pressed.connect(func():
+			slider.value = float(default)
+			params.erase(param)
+			_save())
+	row.add_child(reset)
+	return row
 
 
 # --- Output & Generate -------------------------------------------------------

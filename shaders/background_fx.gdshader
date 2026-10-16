@@ -27,12 +27,19 @@ uniform float beat_phase : hint_range(0.0, 1.0) = 0.0;
 uniform float beat_pulse : hint_range(0.0, 1.0) = 0.0;
 uniform float bpm = 0.0;
 
-uniform float distort_speed = 1.0;
-uniform float distort_frequency = 12.0;
-uniform float glow_threshold : hint_range(0.0, 1.0) = 0.55;
+// Tunables, exposed as sliders in the editor (see background_fx.gd's
+// EFFECT_PARAMS). Every float needs a hint_range: it sets the slider bounds.
+uniform float distort_speed : hint_range(0.0, 4.0, 0.01) = 1.0;
+uniform float distort_frequency : hint_range(1.0, 40.0, 0.1) = 12.0;
+uniform float heat_strength : hint_range(0.0, 4.0, 0.01) = 1.0;
+uniform float heat_pulse : hint_range(0.0, 1.0, 0.01) = 0.3;
+uniform float glow_threshold : hint_range(0.0, 1.0, 0.01) = 0.1;
+uniform float glow_radius : hint_range(0.5, 12.0, 0.1) = 3.0;
+uniform float glow_gain : hint_range(0.0, 20.0, 0.1) = 9.0;
 uniform vec4 glow_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform float saturation_boost = 2.25;
-uniform float grain_size = 1.6;
+uniform float saturation_boost : hint_range(0.0, 16.0, 0.05) = 8.0;
+uniform float grain_size : hint_range(0.5, 8.0, 0.05) = 1.6;
+uniform float grain_strength : hint_range(0.0, 12.0, 0.05) = 9.0;
 
 uniform bool heat_enabled = true;
 uniform bool glow_enabled = true;
@@ -44,7 +51,7 @@ void fragment() {
 	// back to baseline if no BPM yet.
 	float tempo_scale = bpm > 0.0 ? bpm / 120.0 : 1.0;
 	float heat_t = TIME * distort_speed * tempo_scale;
-	float heat_amp = heat_amplitude(low_intensity, beat_phase, beat_pulse);
+	float heat_amp = heat_amplitude(low_intensity, beat_phase, beat_pulse, heat_pulse) * heat_strength;
 	vec2 uv = UV;
 	if (heat_enabled) {
 		uv += heat_offset(UV, heat_amp, heat_t, distort_frequency);
@@ -54,7 +61,7 @@ void fragment() {
 
 	// 2. Sample.
 	if (glow_enabled) {
-		col += glow(TEXTURE, uv, TEXTURE_PIXEL_SIZE, glow_threshold, glow_tint.rgb, mid_intensity);
+		col += glow(TEXTURE, uv, TEXTURE_PIXEL_SIZE, glow_threshold, glow_tint.rgb, mid_intensity, glow_radius, glow_gain);
 	}
 
 	// 3. Grade.
@@ -64,7 +71,7 @@ void fragment() {
 
 	// 4. Overlay.
 	if (grain_enabled) {
-		col = grain(col, FRAGCOORD.xy, SCREEN_PIXEL_SIZE, TIME, grain_size, high_intensity);
+		col = grain(col, FRAGCOORD.xy, SCREEN_PIXEL_SIZE, TIME, grain_size, high_intensity, grain_strength);
 	}
 
 	COLOR = vec4(col, base.a);

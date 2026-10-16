@@ -5,7 +5,8 @@ extends TextureRect
 ## toward each new value — same smoothing approach as master_meter.gd.
 ## Also feeds the heat wobble a tempo sync (bpm, beat_phase, beat_pulse) taken
 ## from whichever deck currently dominates the mix (MixData.latest_levels).
-## Exposes per-effect and master on/off toggles for the esc menu.
+## Exposes per-effect and master on/off toggles plus per-effect tunables
+## for the editor sidebar.
 
 ## Effect name -> the shader's bool uniform gating that stage.
 const EFFECTS := {
@@ -13,6 +14,15 @@ const EFFECTS := {
 	"Glow": "glow_enabled",
 	"Saturation": "saturation_enabled",
 	"Grain": "grain_enabled",
+}
+
+## Effect name -> the shader's tunable uniforms shown as sliders under its
+## toggle. Floats take their slider range from the uniform's hint_range.
+const EFFECT_PARAMS := {
+	"Heat": ["heat_strength", "heat_pulse", "distort_speed", "distort_frequency"],
+	"Glow": ["glow_threshold", "glow_radius", "glow_gain", "glow_tint"],
+	"Saturation": ["saturation_boost"],
+	"Grain": ["grain_strength", "grain_size"],
 }
 
 const DECAY_SPEED := 10.0
@@ -37,11 +47,21 @@ var _display_bpm := 0.0
 ## Kept so the master toggle can strip the material and put it back.
 @onready var _fx_material: ShaderMaterial = material
 var _effect_enabled := {}
+## Uniform name -> value at startup (the scene's material, else the shader's
+## own default), for the reset buttons.
+var _param_defaults := {}
 
 
 func _ready() -> void:
 	for effect in EFFECTS.keys():
 		set_effect_enabled(effect, true)
+	var shader_rid := _fx_material.shader.get_rid()
+	for params in EFFECT_PARAMS.values():
+		for param in params:
+			var value = _fx_material.get_shader_parameter(param)
+			if value == null:
+				value = RenderingServer.shader_get_parameter_default(shader_rid, param)
+			_param_defaults[param] = value
 
 
 func is_all_enabled() -> bool:
@@ -62,6 +82,27 @@ func is_effect_enabled(effect: String) -> bool:
 func set_effect_enabled(effect: String, enabled: bool) -> void:
 	_effect_enabled[effect] = enabled
 	_fx_material.set_shader_parameter(EFFECTS[effect], enabled)
+
+
+func get_param(param: String) -> Variant:
+	var value = _fx_material.get_shader_parameter(param)
+	return _param_defaults[param] if value == null else value
+
+
+func get_param_default(param: String) -> Variant:
+	return _param_defaults[param]
+
+
+func set_param(param: String, value: Variant) -> void:
+	_fx_material.set_shader_parameter(param, value)
+
+
+## The shader's uniform description for `param` (type, hint, hint_string).
+func get_param_info(param: String) -> Dictionary:
+	for info in _fx_material.shader.get_shader_uniform_list():
+		if info["name"] == param:
+			return info
+	return {}
 
 
 func _process(delta: float) -> void:

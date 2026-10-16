@@ -46,6 +46,9 @@ static func defaults() -> Dictionary:
 			},
 			"shaders_enabled": true,
 			"effects": {},
+			## Shader uniform name -> value; float, or "#rrggbb" for colors.
+			## Missing = the shader's default.
+			"shader_params": {},
 		},
 		"output": {
 			"path": "",
@@ -116,6 +119,13 @@ static func apply_style(style: Dictionary, overlay: Overlay) -> void:
 	var effects: Dictionary = style.get("effects", {})
 	for effect in overlay.background.EFFECTS.keys():
 		overlay.background.set_effect_enabled(effect, effects.get(effect, true))
+	var params: Dictionary = style.get("shader_params", {})
+	for effect in overlay.background.EFFECT_PARAMS.keys():
+		for param in overlay.background.EFFECT_PARAMS[effect]:
+			if not params.has(param):
+				continue
+			var default = overlay.background.get_param_default(param)
+			overlay.background.set_param(param, Color.html(params[param]) if default is Color else float(params[param]))
 	overlay.background.set_all_enabled(style.get("shaders_enabled", true))
 
 

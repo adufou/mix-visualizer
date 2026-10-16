@@ -2,8 +2,8 @@
 // warped) uv. Returns the light to add on top of the base color.
 // Needs common.gdshaderinc.
 
-vec3 glow(sampler2D tex, vec2 uv, vec2 pixel_size, float threshold, vec3 tint, float intensity) {
-	vec2 texel = pixel_size * 3.0;
+vec3 glow(sampler2D tex, vec2 uv, vec2 pixel_size, float threshold, vec3 tint, float intensity, float radius, float gain) {
+	vec2 texel = pixel_size * radius;
 	vec2 offsets[8] = vec2[](
 		vec2(1.0, 0.0), vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, -1.0),
 		vec2(0.7, 0.7), vec2(-0.7, 0.7), vec2(0.7, -0.7), vec2(-0.7, -0.7)
@@ -14,5 +14,5 @@ vec3 glow(sampler2D tex, vec2 uv, vec2 pixel_size, float threshold, vec3 tint, f
 	}
 	bloom /= 8.0;
 	vec3 bright = max(bloom - threshold, 0.0) / max(1.0 - threshold, 0.0001) * luma(bloom);
-	return bright * tint * intensity * 9.0;
+	return bright * tint * intensity * gain;
 }

@@ -6,8 +6,8 @@
 // instead of shrinking to invisible single pixels.
 // Needs common.gdshaderinc.
 
-vec3 grain(vec3 col, vec2 fragcoord, vec2 screen_pixel_size, float time, float size, float intensity) {
+vec3 grain(vec3 col, vec2 fragcoord, vec2 screen_pixel_size, float time, float size, float intensity, float strength) {
 	vec2 cell = floor(fragcoord * 1080.0 * screen_pixel_size.y);
 	float noise = rand(cell / size + fract(time) * 197.0) - 0.5;
-	return col + noise * intensity * 9.0; // TEMP: cranked for visibility test
+	return col + noise * intensity * strength;
 }
