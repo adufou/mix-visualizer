@@ -64,7 +64,7 @@ void fragment() {
 
 	// 4. Overlay.
 	if (grain_enabled) {
-		col = grain(col, FRAGCOORD.xy, TIME, grain_size, high_intensity);
+		col = grain(col, FRAGCOORD.xy, SCREEN_PIXEL_SIZE, TIME, grain_size, high_intensity);
 	}
 
 	COLOR = vec4(col, base.a);
