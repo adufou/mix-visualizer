@@ -36,6 +36,8 @@ static func defaults() -> Dictionary:
 		"style": {
 			"background_path": "",
 			"font": FontManager.current_font_name,
+			## Overlay.DECK_PAIRS key: which two decks get the panels.
+			"decks": "Auto",
 			"colors": {
 				"low": BackgroundManager.current_colors["low"].to_html(false),
 				"mid": BackgroundManager.current_colors["mid"].to_html(false),
@@ -108,6 +110,7 @@ static func apply_style(style: Dictionary, overlay: Overlay) -> void:
 	var font: String = style.get("font", "")
 	if FontManager.FONTS.has(font):
 		FontManager.set_font(font)
+	overlay.set_deck_pair(style.get("decks", "Auto"))
 	var effects: Dictionary = style.get("effects", {})
 	for effect in overlay.background.EFFECTS.keys():
 		overlay.background.set_effect_enabled(effect, effects.get(effect, true))

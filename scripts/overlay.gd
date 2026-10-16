@@ -6,12 +6,19 @@ extends Control
 
 const DeckPanelScene := preload("res://scenes/deck_panel.tscn")
 
-## Used until a recording says which decks actually played.
-const DEFAULT_DECKS := ["[Channel1]", "[Channel2]"]
+## Selectable deck pairs (style "decks"). "Auto" = the first two decks (by
+## deck number) that had a track loaded, or 1/2 until a recording says.
+const DECK_PAIRS: Dictionary = {
+	"Auto": [],
+	"1/2": ["[Channel1]", "[Channel2]"],
+	"3/4": ["[Channel3]", "[Channel4]"],
+}
 
 @onready var top_deck_slot: Control = %TopDeckSlot
 @onready var bottom_deck_slot: Control = %BottomDeckSlot
 @onready var background: BackgroundFx = %Background
+
+var deck_pair := "Auto"
 
 
 func _ready() -> void:
@@ -25,14 +32,24 @@ func _ready() -> void:
 	_build_deck_panels()
 
 
-## Two slots: the first two decks (by deck number) that had a track loaded
-## during the recording.
+func set_deck_pair(pair: String) -> void:
+	if not DECK_PAIRS.has(pair):
+		push_error("Overlay: unknown deck pair '%s'" % pair)
+		return
+	deck_pair = pair
+	if is_node_ready():
+		_build_deck_panels()
+
+
+## Two slots, filled from deck_pair.
 func _build_deck_panels() -> void:
-	var shown: Array = DEFAULT_DECKS
-	if MixData.has_recording():
-		var used := MixData.recording.used_decks()
-		if not used.is_empty():
-			shown = Array(used).slice(0, 2)
+	var shown: Array = DECK_PAIRS[deck_pair]
+	if shown.is_empty():
+		shown = DECK_PAIRS["1/2"]
+		if MixData.has_recording():
+			var used := MixData.recording.used_decks()
+			if not used.is_empty():
+				shown = Array(used).slice(0, 2)
 
 	var slots := [top_deck_slot, bottom_deck_slot]
 	for slot in slots:

@@ -180,6 +180,20 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="DecksRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Split/Sidebar/Scroll/Margin/Form/DecksRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Decks"
+
+[node name="DecksOptionButton" type="OptionButton" parent="Split/Sidebar/Scroll/Margin/Form/DecksRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Which two decks get the panels. Auto = first two that loaded a track."
+
 [node name="ColorsRow" type="HBoxContainer" parent="Split/Sidebar/Scroll/Margin/Form" unique_id=347339459]
 layout_mode = 2
 

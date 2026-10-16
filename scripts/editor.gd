@@ -22,6 +22,7 @@ const SKIP_SECONDS := 5.0
 @onready var session_info: Label = %SessionInfo
 @onready var background_path_edit: LineEdit = %BackgroundPath
 @onready var font_option_button: OptionButton = %FontOptionButton
+@onready var decks_option_button: OptionButton = %DecksOptionButton
 @onready var low_color_picker: ColorPickerButton = %LowColorPicker
 @onready var mid_color_picker: ColorPickerButton = %MidColorPicker
 @onready var high_color_picker: ColorPickerButton = %HighColorPicker
@@ -262,6 +263,15 @@ func _init_style_controls() -> void:
 	font_option_button.item_selected.connect(func(index):
 		FontManager.set_font(font_option_button.get_item_text(index))
 		style["font"] = FontManager.current_font_name
+		_save())
+
+	var pairs := Overlay.DECK_PAIRS.keys()
+	for pair in pairs:
+		decks_option_button.add_item(pair)
+	decks_option_button.select(max(pairs.find(_overlay.deck_pair), 0))
+	decks_option_button.item_selected.connect(func(index):
+		_overlay.set_deck_pair(decks_option_button.get_item_text(index))
+		style["decks"] = _overlay.deck_pair
 		_save())
 
 	var pickers := {"low": low_color_picker, "mid": mid_color_picker, "high": high_color_picker, "accent": accent_color_picker}
