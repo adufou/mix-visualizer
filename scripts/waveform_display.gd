@@ -6,6 +6,9 @@ extends Control
 
 @export var deck_id := "[Channel1]"
 @export var window_seconds := 5.0
+## Applied on top of total_gain: ReplayGain mostly turns tracks down (~0.7x
+## typical), which made bars shorter than before gain was applied.
+@export var height_scale := 1.8
 
 const ALPHA_LOW := 0.85
 const ALPHA_MID := 0.75
@@ -106,7 +109,7 @@ func _process(_delta: float) -> void:
 	_material.set_shader_parameter("bar_width", max(1.0, px_per_frame))
 	# Pregain x ReplayGain: the stored waveform is the raw file, before the
 	# engine levels it, so scale it like Mixxx's own waveform widget does.
-	_material.set_shader_parameter("gain", levels.get("total_gain", 1.0))
+	_material.set_shader_parameter("gain", levels.get("total_gain", 1.0) * height_scale)
 	_material.set_shader_parameter("eq", Vector3(
 		0.0 if levels.get("kill_low", false) else levels.get("eq_low", 1.0),
 		0.0 if levels.get("kill_mid", false) else levels.get("eq_mid", 1.0),
