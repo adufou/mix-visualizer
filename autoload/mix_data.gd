@@ -22,7 +22,7 @@ var time := 0.0
 ##              cover_load_id }
 var decks: Dictionary = {}
 
-## deck_id -> { pos, volume, eq_low, eq_mid, eq_high, kill_low, kill_mid, kill_high,
+## deck_id -> { pos, volume, total_gain, eq_low, eq_mid, eq_high, kill_low, kill_mid, kill_high,
 ##              bpm, beat_distance }
 ## bpm: effective tempo, 0.0 if no track. beat_distance: 0..1 into the current
 ## beat, wraps 1 -> 0 on each beat hit. pos: 0..1 fraction of the track, -1 = none.
@@ -124,6 +124,7 @@ func _apply_levels(t: float) -> void:
 		latest_levels[deck_id] = {
 			"pos": _interp_pos(rec.pos[a], rec.pos[b], w, deck_id),
 			"volume": lerp(rec.volume[a], rec.volume[b], w),
+			"total_gain": lerp(rec.total_gain[a], rec.total_gain[b], w),
 			"eq_low": lerp(rec.eq_low[a], rec.eq_low[b], w),
 			"eq_mid": lerp(rec.eq_mid[a], rec.eq_mid[b], w),
 			"eq_high": lerp(rec.eq_high[a], rec.eq_high[b], w),

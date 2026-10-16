@@ -24,6 +24,10 @@ uniform int window_frames = 1;
 uniform float bar_width;
 // EQ gain per band, 0 when the band is killed.
 uniform vec3 eq = vec3(1.0);
+// Deck pregain x ReplayGain (up to 10x), on all bands.
+uniform float gain = 1.0;
+// Bars are clamped to this many half heights: the rect's overflow.
+uniform float max_amp = 4.0;
 uniform vec4 color_low;
 uniform vec4 color_mid;
 uniform vec4 color_high;
@@ -66,7 +70,7 @@ void fragment() {
 		if (!covers(x, half_bar, FRAGCOORD.x, screen_origin.x, screen_scale.x)) {
 			continue;
 		}
-		vec3 amp = texelFetch(wave, ivec2(i % tex_width, i / tex_width), 0).rgb * eq;
+		vec3 amp = min(texelFetch(wave, ivec2(i % tex_width, i / tex_width), 0).rgb * eq * gain, vec3(max_amp));
 		vec3 bar_height = amp * half_height;
 		if (bar_height.x > 0.0 && covers(half_height, bar_height.x, FRAGCOORD.y, screen_origin.y, screen_scale.y)) {
 			blend(premul, transparency, color_low, opacity);

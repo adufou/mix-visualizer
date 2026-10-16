@@ -33,6 +33,7 @@ var _texture_key := ""
 func _ready() -> void:
 	_material.shader = preload("res://shaders/waveform.gdshader")
 	_material.set_shader_parameter("tex_width", TEXTURE_WIDTH)
+	_material.set_shader_parameter("max_amp", MAX_EQ_GAIN)
 	_bars.material = _material
 	_bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bars.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -103,6 +104,9 @@ func _process(_delta: float) -> void:
 	_material.set_shader_parameter("px_per_frame", px_per_frame)
 	_material.set_shader_parameter("window_frames", window_frames)
 	_material.set_shader_parameter("bar_width", max(1.0, px_per_frame))
+	# Pregain x ReplayGain: the stored waveform is the raw file, before the
+	# engine levels it, so scale it like Mixxx's own waveform widget does.
+	_material.set_shader_parameter("gain", levels.get("total_gain", 1.0))
 	_material.set_shader_parameter("eq", Vector3(
 		0.0 if levels.get("kill_low", false) else levels.get("eq_low", 1.0),
 		0.0 if levels.get("kill_mid", false) else levels.get("eq_mid", 1.0),
