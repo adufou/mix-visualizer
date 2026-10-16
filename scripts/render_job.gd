@@ -38,6 +38,7 @@ static func defaults() -> Dictionary:
 			"font": FontManager.current_font_name,
 			## Overlay.DECK_PAIRS key: which two decks get the panels.
 			"decks": "Auto",
+			"waveform_height": Overlay.DEFAULT_WAVEFORM_HEIGHT,
 			"colors": {
 				"low": BackgroundManager.current_colors["low"].to_html(false),
 				"mid": BackgroundManager.current_colors["mid"].to_html(false),
@@ -116,6 +117,7 @@ static func apply_style(style: Dictionary, overlay: Overlay) -> void:
 	if FontManager.FONTS.has(font):
 		FontManager.set_font(font)
 	overlay.set_deck_pair(style.get("decks", "Auto"))
+	overlay.set_waveform_height(float(style.get("waveform_height", Overlay.DEFAULT_WAVEFORM_HEIGHT)))
 	var effects: Dictionary = style.get("effects", {})
 	for effect in overlay.background.EFFECTS.keys():
 		overlay.background.set_effect_enabled(effect, effects.get(effect, true))

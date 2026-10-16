@@ -283,6 +283,7 @@ func _init_style_controls() -> void:
 			style["colors"][band] = color.to_html(false))
 		picker.popup_closed.connect(_save)
 
+	_build_waveform_height_row()
 	_build_shader_toggles()
 
 
@@ -291,6 +292,25 @@ func _on_background_selected(path: String) -> void:
 		_job["style"]["background_path"] = path
 		background_path_edit.text = path
 		_save()
+
+
+## Waveform height slider with a reset button, right above the shader settings.
+func _build_waveform_height_row() -> void:
+	var style: Dictionary = _job["style"]
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = "Wave height"
+	label.custom_minimum_size.x = 80
+	row.add_child(label)
+	var slider := _add_slider(row, 0.5, 4.0, 0.05, _overlay.waveform_height, func(value):
+		_overlay.set_waveform_height(value)
+		style["waveform_height"] = value
+		_save())
+	var reset := _make_reset_button()
+	reset.pressed.connect(func(): slider.value = Overlay.DEFAULT_WAVEFORM_HEIGHT)
+	row.add_child(reset)
+	shader_toggles.get_parent().add_child(row)
+	shader_toggles.get_parent().move_child(row, shader_toggles.get_index())
 
 
 ## One master "All shaders" switch plus one per effect in background_fx.gd's
@@ -359,11 +379,7 @@ func _build_param_row(param: String) -> Control:
 	label.custom_minimum_size.x = 120
 	row.add_child(label)
 
-	var reset := Button.new()
-	reset.text = "↺"
-	reset.tooltip_text = "Reset to default"
-	reset.flat = true
-
+	var reset := _make_reset_button()
 	var default = background.get_param_default(param)
 	if default is Color:
 		var picker := ColorPickerButton.new()
@@ -382,34 +398,51 @@ func _build_param_row(param: String) -> Control:
 			params.erase(param)
 			_save())
 	else:
-		var spin := SpinBox.new()
 		var hint := String(background.get_param_info(param).get("hint_string", "0,1,0.01")).split(",")
-		spin.min_value = float(hint[0])
-		spin.max_value = float(hint[1])
-		spin.step = float(hint[2]) if hint.size() > 2 else 0.01
-		spin.custom_arrow_step = spin.step
-		var slider := HSlider.new()
-		slider.min_value = spin.min_value
-		slider.max_value = spin.max_value
-		slider.step = spin.step
-		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		slider.value = float(background.get_param(param))
-		spin.value = slider.value
-		slider.value_changed.connect(func(value):
-			spin.set_value_no_signal(value)
+		var step := float(hint[2]) if hint.size() > 2 else 0.01
+		var slider := _add_slider(row, float(hint[0]), float(hint[1]), step, float(background.get_param(param)), func(value):
 			background.set_param(param, value)
 			params[param] = value
 			_save())
-		spin.value_changed.connect(func(value): slider.value = value)
-		row.add_child(slider)
-		row.add_child(spin)
 		reset.pressed.connect(func():
 			slider.value = float(default)
 			params.erase(param)
 			_save())
 	row.add_child(reset)
 	return row
+
+
+## Adds a slider and a spin box mirroring it to `row`; on_change gets every
+## new value. Returns the slider (set its value to drive both).
+func _add_slider(row: HBoxContainer, min_value: float, max_value: float, step: float, value: float, on_change: Callable) -> HSlider:
+	var spin := SpinBox.new()
+	spin.min_value = min_value
+	spin.max_value = max_value
+	spin.step = step
+	spin.custom_arrow_step = step
+	var slider := HSlider.new()
+	slider.min_value = min_value
+	slider.max_value = max_value
+	slider.step = step
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.value = value
+	spin.value = value
+	slider.value_changed.connect(func(new_value):
+		spin.set_value_no_signal(new_value)
+		on_change.call(new_value))
+	spin.value_changed.connect(func(new_value): slider.value = new_value)
+	row.add_child(slider)
+	row.add_child(spin)
+	return slider
+
+
+func _make_reset_button() -> Button:
+	var reset := Button.new()
+	reset.text = "↺"
+	reset.tooltip_text = "Reset to default"
+	reset.flat = true
+	return reset
 
 
 # --- Output & Generate -------------------------------------------------------

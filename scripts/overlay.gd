@@ -14,11 +14,16 @@ const DECK_PAIRS: Dictionary = {
 	"3/4": ["[Channel3]", "[Channel4]"],
 }
 
+## Waveform bar height multiplier (style "waveform_height"), on top of the
+## tracks' ReplayGain. Same as WaveformDisplay.height_scale's default.
+const DEFAULT_WAVEFORM_HEIGHT := 1.8
+
 @onready var top_deck_slot: Control = %TopDeckSlot
 @onready var bottom_deck_slot: Control = %BottomDeckSlot
 @onready var background: BackgroundFx = %Background
 
 var deck_pair := "Auto"
+var waveform_height := DEFAULT_WAVEFORM_HEIGHT
 
 
 func _ready() -> void:
@@ -39,6 +44,14 @@ func set_deck_pair(pair: String) -> void:
 	deck_pair = pair
 	if is_node_ready():
 		_build_deck_panels()
+
+
+func set_waveform_height(height: float) -> void:
+	waveform_height = height
+	if is_node_ready():
+		for slot in [top_deck_slot, bottom_deck_slot]:
+			for panel in slot.get_children():
+				panel.waveform_display.height_scale = height
 
 
 ## Two slots, filled from deck_pair.
@@ -62,6 +75,7 @@ func _build_deck_panels() -> void:
 		# top, so both label rows meet near the screen's vertical center.
 		panel.reversed = (i == 0)
 		slots[i].add_child(panel)
+		panel.waveform_display.height_scale = waveform_height
 
 
 func _on_background_changed(_image: Image, texture: ImageTexture) -> void:
