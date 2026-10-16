@@ -70,6 +70,9 @@ func _ready() -> void:
 	process_priority = -1000 # seek MixData before the overlay's nodes read it
 	add_child(_player)
 	_job = RenderJob.load_saved()
+	# Each session starts empty: style and output settings carry over, inputs don't.
+	_job["data_path"] = ""
+	_job["audio_path"] = ""
 
 	_overlay = OverlayScene.instantiate()
 	preview_viewport.add_child(_overlay)
@@ -79,9 +82,6 @@ func _ready() -> void:
 	_init_session_controls()
 	_init_style_controls()
 	_init_output_controls()
-
-	if not _job["data_path"].is_empty() and FileAccess.file_exists(_job["data_path"]):
-		_start_loading(_job["data_path"], _job["audio_path"])
 
 
 func _exit_tree() -> void:
