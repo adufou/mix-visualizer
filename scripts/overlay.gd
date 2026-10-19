@@ -16,7 +16,7 @@ const DECK_PAIRS: Dictionary = {
 
 ## Waveform bar height multiplier (style "waveform_height"), on top of the
 ## per-track level normalization. Same as WaveformDisplay.height_scale's default.
-const DEFAULT_WAVEFORM_HEIGHT := 1.8
+const DEFAULT_WAVEFORM_HEIGHT := 1.0
 
 @onready var top_deck_slot: Control = %TopDeckSlot
 @onready var bottom_deck_slot: Control = %BottomDeckSlot

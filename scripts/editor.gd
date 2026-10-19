@@ -302,7 +302,7 @@ func _build_waveform_height_row() -> void:
 	label.text = "Wave height"
 	label.custom_minimum_size.x = 80
 	row.add_child(label)
-	var slider := _add_slider(row, 0.5, 4.0, 0.05, _overlay.waveform_height, func(value):
+	var slider := _add_slider(row, 0.25, 2.5, 0.05, _overlay.waveform_height, func(value):
 		_overlay.set_waveform_height(value)
 		style["waveform_height"] = value
 		_save())

@@ -7,7 +7,7 @@ extends Control
 @export var deck_id := "[Channel1]"
 @export var window_seconds := 5.0
 ## Applied on top of the level normalization (see TARGET_LEVEL).
-@export var height_scale := 1.8
+@export var height_scale := 1.0
 
 const ALPHA_LOW := 0.85
 const ALPHA_MID := 0.75
@@ -22,10 +22,9 @@ const MAX_EQ_GAIN := 4.0
 ## Every track's waveform is scaled so its level (LEVEL_PERCENTILE of its
 ## per-frame loudest band) lands on TARGET_LEVEL half heights, before
 ## height_scale: all tracks look as big, whatever their pregain/ReplayGain
-## (a wrong ReplayGain made some tracks dwarf the others). 0.23 is where
-## correctly gained tracks sat (~0.41 at the default height_scale).
-const LEVEL_PERCENTILE := 0.9
-const TARGET_LEVEL := 0.23
+## (a wrong ReplayGain made some tracks dwarf the others).
+const LEVEL_PERCENTILE := 0.97
+const TARGET_LEVEL := 0.6
 ## Floor for the measured level, so a near-silent track isn't blown up.
 const MIN_LEVEL := 0.02
 
