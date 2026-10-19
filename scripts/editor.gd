@@ -10,12 +10,15 @@ const FPS_CHOICES := [60, 30]
 const STATUS_POLL_SECONDS := 0.25
 ## Seconds jumped by the Left/Right arrow keys.
 const SKIP_SECONDS := 5.0
+## Preview playback speeds, for checking the audio delay in slow motion.
+const SPEED_CHOICES := [0.1, 0.25, 0.5, 1.0]
 
 @onready var preview_viewport: SubViewport = %PreviewViewport
 @onready var preview_rect: TextureRect = %PreviewRect
 @onready var play_button: Button = %PlayButton
 @onready var time_label: Label = %TimeLabel
 @onready var timeline: HSlider = %Timeline
+@onready var speed_option: OptionButton = %SpeedOption
 @onready var track_strip: Control = %TrackStrip
 @onready var data_path_edit: LineEdit = %DataPath
 @onready var audio_path_edit: LineEdit = %AudioPath
@@ -51,6 +54,7 @@ var _player := AudioStreamPlayer.new()
 var _time := 0.0
 var _duration := 0.0
 var _playing := false
+var _speed := 1.0
 
 var _load_thread: Thread
 var _loading_recording: MixRecording
@@ -101,8 +105,14 @@ func _init_session_controls() -> void:
 	%DataDialog.file_selected.connect(_on_data_file_selected)
 	%AudioDialog.file_selected.connect(func(path): _start_loading(_job["data_path"], path))
 	play_button.pressed.connect(_toggle_play)
+	%BackButton.pressed.connect(func(): _seek(_time - SKIP_SECONDS))
+	%ForwardButton.pressed.connect(func(): _seek(_time + SKIP_SECONDS))
 	timeline.value_changed.connect(_seek)
 	track_strip.seek_requested.connect(_seek)
+	for speed in SPEED_CHOICES:
+		speed_option.add_item("%sx" % speed)
+	speed_option.select(SPEED_CHOICES.find(1.0))
+	speed_option.item_selected.connect(func(index): _set_speed(SPEED_CHOICES[index]))
 
 
 ## Picking a .jsonl also picks its audio: the header names the WAV that sits
@@ -192,14 +202,15 @@ func _process(delta: float) -> void:
 	if _playing:
 		if _player.stream != null:
 			# Playback position only moves once per mix chunk; this smooths it.
-			var t := _player.get_playback_position() + AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()
+			# Mix time and latency are wall-clock, the stream runs _speed times faster.
+			var t := _player.get_playback_position() + (AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()) * _speed
 			_time = max(_time, t)
 			if not _player.playing:
 				_set_playing(false)
 		else:
-			_time += delta # silent preview only; renders never use delta for time
-		if _time >= _duration:
-			_time = _duration
+			_time += delta * _speed # silent preview only; renders never use delta for time
+		if _time >= _range_end():
+			_time = _range_end()
 			_set_playing(false)
 	MixData.seek(_time - _audio_offset_seconds())
 	timeline.set_value_no_signal(_time)
@@ -213,8 +224,9 @@ func _toggle_play() -> void:
 func _set_playing(playing: bool) -> void:
 	if playing and not MixData.has_recording():
 		return
-	if playing and _time >= _duration:
-		_time = 0.0
+	# Playback stays inside the render range, so the preview plays what the video will.
+	if playing and (_time < _range_start() or _time >= _range_end()):
+		_time = _range_start()
 	_playing = playing
 	play_button.text = "Pause" if playing else "Play"
 	if _player.stream == null:
@@ -227,8 +239,26 @@ func _set_playing(playing: bool) -> void:
 
 func _seek(t: float) -> void:
 	_time = clamp(t, 0.0, _duration)
-	if _playing and _player.stream != null:
-		_player.play(_time)
+	if _playing:
+		_time = clamp(_time, _range_start(), _range_end())
+		if _player.stream != null:
+			_player.play(_time)
+
+
+## Preview only: the audio is pitched along (pitch_scale), the video stays 1x.
+func _set_speed(speed: float) -> void:
+	_speed = speed
+	_player.pitch_scale = speed
+
+
+func _range_start() -> float:
+	return clamp(float(_job["output"]["range_start"]), 0.0, _range_end())
+
+
+## Same end as the renderer: range_end, or the end of the audio when it's 0.
+func _range_end() -> float:
+	var end := float(_job["output"]["range_end"])
+	return min(end, _duration) if end > 0.0 else _duration
 
 
 func _unhandled_input(event: InputEvent) -> void:
