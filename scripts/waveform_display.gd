@@ -6,8 +6,7 @@ extends Control
 
 @export var deck_id := "[Channel1]"
 @export var window_seconds := 5.0
-## Applied on top of total_gain: ReplayGain mostly turns tracks down (~0.7x
-## typical), which made bars shorter than before gain was applied.
+## Applied on top of the level normalization (see TARGET_LEVEL).
 @export var height_scale := 1.8
 
 const ALPHA_LOW := 0.85
@@ -20,6 +19,15 @@ const TEXTURE_WIDTH := 4096
 ## Max EQ gain (+12 dB): a fully boosted band's bar is 4x the half height,
 ## so bars can reach 1.5 heights beyond the control above and below.
 const MAX_EQ_GAIN := 4.0
+## Every track's waveform is scaled so its level (LEVEL_PERCENTILE of its
+## per-frame loudest band) lands on TARGET_LEVEL half heights, before
+## height_scale: all tracks look as big, whatever their pregain/ReplayGain
+## (a wrong ReplayGain made some tracks dwarf the others). 0.23 is where
+## correctly gained tracks sat (~0.41 at the default height_scale).
+const LEVEL_PERCENTILE := 0.9
+const TARGET_LEVEL := 0.23
+## Floor for the measured level, so a near-silent track isn't blown up.
+const MIN_LEVEL := 0.02
 
 ## Mixxx's VisualPlayPosition is smoothed/interpolated for display and can
 ## overshoot slightly below 0 (or above 1) right at a track's edges. Only the
@@ -31,6 +39,8 @@ var _playhead := ColorRect.new()
 var _material := ShaderMaterial.new()
 ## Identifies the waveform currently uploaded: "<load_id>:<frame_count>".
 var _texture_key := ""
+## LEVEL_PERCENTILE of the uploaded waveform's per-frame loudest band (0..1).
+var _raw_level := 0.0
 
 
 func _ready() -> void:
@@ -107,9 +117,7 @@ func _process(_delta: float) -> void:
 	_material.set_shader_parameter("px_per_frame", px_per_frame)
 	_material.set_shader_parameter("window_frames", window_frames)
 	_material.set_shader_parameter("bar_width", max(1.0, px_per_frame))
-	# Pregain x ReplayGain: the stored waveform is the raw file, before the
-	# engine levels it, so scale it like Mixxx's own waveform widget does.
-	_material.set_shader_parameter("gain", levels.get("total_gain", 1.0) * height_scale)
+	_material.set_shader_parameter("gain", TARGET_LEVEL / maxf(_raw_level, MIN_LEVEL) * height_scale)
 	_material.set_shader_parameter("eq", Vector3(
 		0.0 if levels.get("kill_low", false) else levels.get("eq_low", 1.0),
 		0.0 if levels.get("kill_mid", false) else levels.get("eq_mid", 1.0),
@@ -129,3 +137,21 @@ func _update_texture(deck: Dictionary) -> void:
 	bytes.resize(TEXTURE_WIDTH * rows * 3)
 	var image := Image.create_from_data(TEXTURE_WIDTH, rows, false, Image.FORMAT_RGB8, bytes)
 	_material.set_shader_parameter("wave", ImageTexture.create_from_image(image))
+	_raw_level = _percentile_level(deck["waveform_bytes"], frame_count)
+
+
+## LEVEL_PERCENTILE of max(low, mid, high) over all frames, from a 256-bin
+## histogram (exact for byte data, no sort).
+static func _percentile_level(bytes: PackedByteArray, frame_count: int) -> float:
+	var histogram := PackedInt32Array()
+	histogram.resize(256)
+	for f in mini(frame_count, int(bytes.size() / 3.0)):
+		var i := f * 3
+		histogram[maxi(bytes[i], maxi(bytes[i + 1], bytes[i + 2]))] += 1
+	var target := int(frame_count * LEVEL_PERCENTILE)
+	var seen := 0
+	for value in 256:
+		seen += histogram[value]
+		if seen > target:
+			return value / 255.0
+	return 1.0
