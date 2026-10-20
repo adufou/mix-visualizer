@@ -45,6 +45,18 @@ var _readback_done: Dictionary = {}
 ## renderer has no RenderingDevice (Compatibility) or with --sync-readback.
 var _rd: RenderingDevice
 var _ffmpeg: Dictionary = {}
+## Pipe writes run on their own thread: a 4K frame is 33 MB and the write
+## blocks while ffmpeg encodes, so the main thread draws the next frames
+## meanwhile. At most WRITE_QUEUE_FRAMES frames wait in memory.
+const WRITE_QUEUE_FRAMES := 4
+var _writer: Thread
+var _write_queue: Array = []
+var _write_mutex := Mutex.new()
+## Posted once per queued frame (or the null stop marker) / per free queue slot.
+var _write_items := Semaphore.new()
+var _write_slots := Semaphore.new()
+## Set by the writer thread when a pipe write fails; checked on the main thread.
+var _write_failed := false
 var _started_msec := 0
 var _status_path := ""
 var _cancel_path := ""
@@ -52,7 +64,7 @@ var _finished := false
 
 ## --profile: microseconds spent per stage, summed over written frames.
 var _profile := false
-var _profile_us := {"frame": 0, "readback": 0, "store_buffer": 0}
+var _profile_us := {"frame": 0, "readback": 0, "write_wait": 0}
 var _profile_last_us := 0
 
 
@@ -112,7 +124,42 @@ func _prepare() -> String:
 	if _ffmpeg.is_empty():
 		return "Could not start ffmpeg ('%s'). Check the ffmpeg path setting." % output["ffmpeg"]
 	print("Renderer: ffmpeg %s" % " ".join(ffmpeg_args))
+	for i in WRITE_QUEUE_FRAMES:
+		_write_slots.post()
+	_writer = Thread.new()
+	_writer.start(_write_loop)
 	return ""
+
+
+## Writer thread: pipes queued frames into ffmpeg until the null stop marker.
+## After a failed write it keeps draining the queue so the main thread never
+## blocks on a full queue.
+func _write_loop() -> void:
+	var stdio: FileAccess = _ffmpeg["stdio"]
+	while true:
+		_write_items.wait()
+		_write_mutex.lock()
+		var data = _write_queue.pop_front()
+		_write_mutex.unlock()
+		if data == null:
+			return
+		if not _write_failed and not stdio.store_buffer(data):
+			_write_failed = true
+		_write_slots.post()
+
+
+## Hands the writer thread its stop marker, waits for the queued frames to be
+## written, and closes ffmpeg's input.
+func _stop_writer() -> void:
+	if _writer == null:
+		return
+	_write_mutex.lock()
+	_write_queue.append(null)
+	_write_mutex.unlock()
+	_write_items.post()
+	_writer.wait_to_finish()
+	_writer = null
+	_ffmpeg["stdio"].close()
 
 
 func _ffmpeg_args(size: Vector2i, audio_path: String, duration: float) -> PackedStringArray:
@@ -190,14 +237,18 @@ func _on_frame_read(data: PackedByteArray, index: int) -> void:
 			_fail("Frame %d has %d bytes, expected %d (RGBA8 %dx%d)" % [_written, frame_data.size(), size.x * size.y * 4, size.x, size.y])
 			return
 		var t0 := Time.get_ticks_usec()
-		# Blocking pipe: when ffmpeg encodes slower than we draw, this waits.
-		var stored: bool = _ffmpeg["stdio"].store_buffer(frame_data)
+		# Waits for a free queue slot: when ffmpeg encodes slower than we draw, this waits.
+		_write_slots.wait()
+		_write_mutex.lock()
+		_write_queue.append(frame_data)
+		_write_mutex.unlock()
+		_write_items.post()
 		var t1 := Time.get_ticks_usec()
-		_profile_us["store_buffer"] += t1 - t0
+		_profile_us["write_wait"] += t1 - t0
 		if _profile_last_us > 0:
 			_profile_us["frame"] += t1 - _profile_last_us
 		_profile_last_us = t1
-		if not stored or not OS.is_process_running(_ffmpeg["pid"]):
+		if _write_failed or not OS.is_process_running(_ffmpeg["pid"]):
 			_fail("ffmpeg stopped while writing frame %d: %s" % [_written, _read_ffmpeg_errors()])
 			return
 		_written += 1
@@ -215,7 +266,7 @@ func _on_frame_read(data: PackedByteArray, index: int) -> void:
 func _finish(state: String) -> void:
 	_finished = true
 	_write_status("encoding", "Finalizing file...")
-	_ffmpeg["stdio"].close()
+	_stop_writer()
 	while OS.is_process_running(_ffmpeg["pid"]):
 		OS.delay_msec(50)
 	var exit_code := OS.get_process_exit_code(_ffmpeg["pid"])
@@ -237,7 +288,9 @@ func _fail(message: String) -> void:
 	_finished = true
 	printerr("Renderer: " + message)
 	_write_status("error", message)
-	if not _ffmpeg.is_empty():
+	if _writer != null:
+		_stop_writer()
+	elif not _ffmpeg.is_empty():
 		_ffmpeg["stdio"].close()
 	get_tree().quit(1)
 
